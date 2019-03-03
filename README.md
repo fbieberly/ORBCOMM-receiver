@@ -22,12 +22,18 @@ http://f6cte.free.fr/index_anglais.htm
 
 Written for py2.7.  
 
-I use pyrtlsdr to record the RF signal with an RTLSDR receiver.  
-NumPy and SciPy are used for signal processing.  
-PyEphem is used to calculate Az/El and doppler shift of the satellites.  
+I use [pyrtlsdr] to record the RF signal with an RTLSDR receiver.  
+[NumPy] and [SciPy] are used for signal processing.  
+[PyEphem] is used to calculate Az/El and doppler shift of the satellites.  
 
 pip install pyrtlsdr, numpy, scipy, pyephem  
 
+
+
+[PyEphem]: https://rhodesmill.org/pyephem/index.html
+[NumPy]: www.numpy.org/
+[SciPy]: https://www.scipy.org/
+[pyrtlsdr]: https://github.com/roger-/pyrtlsdr
 
 
 ## References

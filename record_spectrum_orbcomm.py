@@ -76,7 +76,6 @@ while 1:
             filename = '{}'.format(record_time).replace('.', 'p') + '.mat'
             save_dict = {
                         'samples':complex_samples,
-                        'sat_name':sat_name,
                         'timestamp':record_time,
                         'sats': sats,
                         'tles': tles,

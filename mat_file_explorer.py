@@ -20,21 +20,20 @@ c = 299792458.0 # m/s
 
 # PyEphem observer 
 # Imput your receivers latitude, longitude and altitude
+# this is the lat/lon that the data was originally recorded at.
 lat = 43.802953
 lon = -99.210731
 alt = 0 
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer
-min_elevation = 0.0 # in degrees, in urban or heavily wooded areas, increase as appropriate
 
-
+# Where the data files are located
 data_dir = r'./data/'
 sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 
-
+# Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
-# print(data)
 print("Timestamp: {}".format(data['timestamp'][0][0]))
 print("Satellites in recording: {}".format(', '.join(data['sats'])))
 print("Sample rate: {}".format(data['fs'][0][0]))
@@ -46,10 +45,7 @@ for sat_name in data['sats']:
 	frequencies.append(freq2)
 print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencies])))
 
-
-
-
-
+# Extract the values for some further processing
 samples = data['samples'][0]
 center_freq = data['fc'][0][0]
 sample_rate = data['fs'][0][0]
@@ -74,7 +70,10 @@ for freq in frequencies:
 
 # Plot one of the channels as baseband
 plt.subplot(222)
-sat_center_frequency = frequencies[1]
+sat_center_frequency = frequencies[0]
+
+# Use the TLE info that was in the .mat file to calculate doppler shift
+# of the satellite's transmission
 sat_line0, sat_line1, sat_line2 = [str(xx) for xx in data['tles'][0]]
 sat = ephem.readtle(sat_line0, sat_line1, sat_line2)
 sat.compute(obs)
@@ -115,8 +114,5 @@ plt.title("Complex samples (10k samples)")
 plt.xlabel("Real")
 plt.ylabel("Imag")
 
-
-
 plt.tight_layout()
-
 plt.show()

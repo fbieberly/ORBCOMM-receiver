@@ -58,3 +58,5 @@ The files include metadata:
 - timestamp: unix time of the start of the recording  
 - samples: a numpy complex64 array of the samples  
 
+Look at the mat_file_explorer.py script to see an example of how to access the metadata.  
+

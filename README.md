@@ -40,6 +40,6 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 
 I used these two resources as my primary references.  
 
-http://mdkenny.customer.netspace.net.au/Orbcomm.pdf - No longer is available online. PDF is in the literature folder.  
+http://mdkenny.customer.netspace.net.au/Orbcomm.pdf - No longer available online. PDF is in the literature folder.  
 http://www.decodesystems.com/orbcomm.html  
  

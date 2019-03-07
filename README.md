@@ -43,3 +43,18 @@ I used these two resources as my primary references.
 http://mdkenny.customer.netspace.net.au/Orbcomm.pdf - No longer available online. PDF is in the literature folder.  
 http://www.decodesystems.com/orbcomm.html  
  
+
+## Data format
+
+In the data folder is a couple files of samples that I have recorded.  
+
+The files are .mat files. They can be opened with MATLAB or Python (using SciPy's loadmat function).  
+
+The files include metadata:  
+- fc: center frequency  
+- fs: sample rate  
+- sats: a list of the names of the satellites overhead  
+- tles: a list of lists of the tle lines for each satellite (in the order of the sats list)  
+- timestamp: unix time of the start of the recording  
+- samples: a numpy complex64 array of the samples  
+

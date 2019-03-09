@@ -107,8 +107,8 @@ plt.ylabel("Magnitude")
 # Plot complex samples from one channel
 plt.subplot(224)
 start = int(1e6)
-stop = start + int(10e3)
-decim = 10
+stop = start + int(100e3)
+decim = 8*32
 plt.scatter(filtered_samples.real[start:stop:decim], filtered_samples.imag[start:stop:decim])
 plt.title("Complex samples (10k samples)")
 plt.xlabel("Real")

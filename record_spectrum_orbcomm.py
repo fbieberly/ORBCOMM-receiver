@@ -60,7 +60,7 @@ while 1:
             sat.compute(obs)
             if degrees(sat.alt) > min_elevation:
                 sats.append(sat_name)
-                tles.append(active_orbcomm_satellites[name]['tles'])
+                tles.append(active_orbcomm_satellites[sat_name]['tles'])
 
         if len(sats) > 0:
             print("Satellites overhead: ")

@@ -1,3 +1,14 @@
+##############################################################################
+#
+# Author: Frank Bieberly
+# Date: 27 March 2019
+# Name: utilities.py
+# Description: 
+# A collection of useful functions
+#
+##############################################################################
+
+
 import numpy as np
 import scipy.signal as scisig
 import matplotlib.pyplot as plt
@@ -92,6 +103,15 @@ def rrcosfilter(N, alpha, Ts, Fs):
     return time_idx, h_rrc
 
 
+# Quadratic interpolation of three points
+def quad_interp(arr):
+    k = np.argmax(arr)
+    y1 =  abs(arr[k - 1])
+    y2 =  abs(arr[k])
+    y3 =  abs(arr[k + 1])
+    d  = (y3 - y1) / (2 * (2 * y2 - y1 - y3))
+    interp_k =  k + d
+    return d
 
 
 if __name__ == '__main__':

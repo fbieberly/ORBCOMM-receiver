@@ -19,7 +19,7 @@ from utilities import gen_bits, qpsk_symbols, rrcosfilter
 
 if __name__ == '__main__':
     num_symbols = 500
-    samples_per_symbol = 8
+    samples_per_symbol = 4
 
     bits = gen_bits(num_symbols, zero_runs=False, one_runs=False)
     symbols = qpsk_symbols(bits, samples_per_symbol)

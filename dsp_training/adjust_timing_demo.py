@@ -2,7 +2,7 @@
 #
 # Author: Frank Bieberly
 # Date: 27 March 2019
-# Name: matched_filter_demo.py
+# Name: adjust_timing_demo.py
 # Description: 
 # This is a demo of transmitting and receiving qpsk samples. It uses a RRC 
 # pulse shaping filter and matched filter on the receiver. Additionally,
@@ -20,7 +20,7 @@ from utilities import gen_bits, qpsk_symbols, rrcosfilter
 
 if __name__ == '__main__':
     num_symbols = 500
-    samples_per_symbol = 2
+    samples_per_symbol = 7
 
     bits = gen_bits(num_symbols, zero_runs=False, one_runs=False)
     symbols = qpsk_symbols(bits, samples_per_symbol)

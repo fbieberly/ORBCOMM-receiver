@@ -13,6 +13,7 @@
 
 import time
 import glob
+import binascii
 from datetime import datetime
 from math import floor, log10
 
@@ -22,6 +23,7 @@ from scipy.io import loadmat
 import scipy.signal as scisig
 import matplotlib.pyplot as plt
 
+from orbcomm_packet import packet_headers, new_packet_headers
 from sat_db import active_orbcomm_satellites
 from helpers import butter_lowpass_filter, complex_mix, rrcosfilter
 
@@ -72,7 +74,7 @@ sat = ephem.readtle(sat_line0, sat_line1, sat_line2)
 sat.compute(obs)
 
 # Decode the lower channel
-sat_center_frequency = frequencies[0]
+sat_center_frequency = frequencies[1]
 
 # Use the TLE info that was in the .mat file to calculate doppler shift
 # of the satellite's transmission
@@ -133,8 +135,8 @@ counter = sample_delay + 1          # interpolating filter adds delay
 time_recovery_samples       = np.zeros(len(matched_filtered_samples), dtype=np.complex64)
 buf_dz  = [0.,0.,0.]
 
-dtau_vect = np.zeros(len(matched_filtered_samples), dtype=np.complex64)
-tau_vect = np.zeros(len(matched_filtered_samples), dtype=np.complex64)
+dtau_vect = np.zeros(len(matched_filtered_samples))
+tau_vect = np.zeros(len(matched_filtered_samples))
 
 for i in range(1, len(matched_filtered_samples)):
     # push sample into interpolating filter
@@ -276,11 +278,52 @@ for xx in range(1, len(bits)):
     if np.abs(sum(bits[xx-1:xx])) == 1.0:
         xor = 1
     xord_bits.append(xor)
+bit_string = ''.join([str(bit) for bit in xord_bits])
 
-#print out the bits
-print("Bits:")
-print(''.join([str(bit) for bit in xord_bits]))
+# Find first full packet
+size_of_packets = 12*8 # bits
+num_of_possible_packets = len(bit_string)/size_of_packets
+bit_offset = 0
+print("Number of possible packets: {}".format(num_of_possible_packets))
 
+scores = np.zeros(size_of_packets)
+for xx in range(0, size_of_packets):
+    for yy in range(xx, len(bit_string)-xx-8, 12*8):
+        if bit_string[yy:yy+8] in new_packet_headers:
+            scores[xx] += 1
+
+bit_offset = np.argmax(scores)
+print("Best bit offset: {}, Valid packet headers: {}".format(bit_offset, scores[bit_offset]))
+
+packets = []
+for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
+    packet = '{:X}'.format(int(bit_string[xx:xx+size_of_packets], 2))
+    packets.append(packet)
+
+packets = sorted(packets)
+for packet in packets:
+    print(packet)
+
+# Use this code to search for bit sequences in the bit stream
+def find_all(a_str, sub):
+    start = 0
+    ret_val = []
+    while True:
+        start = a_str.find(sub, start)
+        if start == -1: 
+            break
+        else:
+            ret_val.append(start)
+        start += 1
+    return ret_val
+
+print('bit seq,     hex seq,  num,  median sep,  median offset')
+for val in range(0, 256):
+    occurances = np.array(find_all(bit_string, "{0:08b}".format(val)))
+    diffs = occurances[1:] - occurances[:-1]
+    mean_offset = np.median([idx%size_of_packets for idx in occurances])
+    print "{:08b} {:8X} {:8} {:8.0f} {:8.0f}".format(val, val, len(occurances), np.median(diffs), mean_offset)
+# exit()
 
 # Plot IQ samples
 plt.figure()

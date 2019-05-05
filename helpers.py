@@ -113,7 +113,6 @@ def fletcher_checksum(hex_data_str):
 
     return '{:02X}{:02X}'.format(sum2, sum1)
 
-# from struct import pack, unpack
 def reverse_endian(hex_data_str):
     out_string = ''
     for xx in range(0, len(hex_data_str)-1, 2):

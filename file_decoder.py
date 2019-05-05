@@ -24,22 +24,12 @@ import scipy.signal as scisig
 import matplotlib.pyplot as plt
 
 from sat_db import active_orbcomm_satellites
-from orbcomm_packet import packet_headers, packet_dict
+from orbcomm_packet import packet_dict
 from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_checksum
 
 
 # speed of light
 c = 299792458.0 # m/s
-
-# PyEphem observer 
-# Imput your receivers latitude, longitude and altitude
-# this is the lat/lon that the data was originally recorded at.
-lat = 43.802953
-lon = -99.210731
-alt = 0 
-obs = ephem.Observer()
-obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
-obs.elevation = alt # Technically is the altitude of observer
 
 # Where the data files are located
 data_dir = r'./data/'
@@ -66,6 +56,19 @@ samples = data['samples'][0]
 center_freq = data['fc'][0][0]
 sample_rate = data['fs'][0][0]
 timestamp = data['timestamp'][0][0]
+# lat = data['lat']
+# lon = data['lon']
+# alt = data['alt']
+
+# PyEphem observer 
+# Imput your receivers latitude, longitude and altitude
+# this is the lat/lon that the data was originally recorded at.
+lat = 43.802953
+lon = -99.210731
+alt = 0 
+obs = ephem.Observer()
+obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
+obs.elevation = alt # Technically is the altitude of observer
 obs.date = datetime.utcfromtimestamp(timestamp)
 
 # Normalize samples
@@ -287,6 +290,12 @@ num_of_possible_packets = len(bit_string)/size_of_packets
 bit_offset = 0
 print("Number of possible packets: {}".format(num_of_possible_packets))
 
+# Extract the headers from the packet dictionary
+packet_headers = [packet_dict[packet_type]['header'] for packet_type in packet_dict]
+
+# for all bit offsets (of the length of the packets)
+# calculate a score for most valid headers of that offset
+# this also checks a bit-reversed score (in case my endianness is reversed)
 scores = np.zeros(size_of_packets)
 revscores = np.zeros(size_of_packets)
 for xx in range(0, size_of_packets):

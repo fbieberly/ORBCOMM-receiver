@@ -73,7 +73,7 @@ while 1:
             complex_samples = np.frombuffer(samples, dtype=np.uint8)
             complex_samples = complex_samples.astype(np.float32) - 128
             complex_samples = complex_samples.astype(np.float32).view(np.complex64)
-            filename = '{}'.format(record_time).replace('.', 'p') + '.mat'
+            filename = '{:.3f}'.format(record_time).replace('.', 'p') + '.mat'
             save_dict = {
                         'samples':complex_samples,
                         'timestamp':record_time,
@@ -96,6 +96,6 @@ while 1:
             sleep(loop_time_remaining)
 
     except KeyboardInterrupt:
-        pass
+        break
 
 sdr.close()

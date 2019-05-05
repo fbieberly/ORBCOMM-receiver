@@ -5,39 +5,35 @@ A software receiver for ORBCOMM satellite transmissions.
   
 ## Description
 
-This is a software receiver for decoding packets from ORBCOMM satellites. 
-While all packets can be decoded and logged, only the Ephemeris packet is 
-decoded and the results can be plotted.  
-
+This is a software receiver for decoding packets from ORBCOMM satellites. I don't know what all of the various packets are for, but for the ones I do, I attempt to decode the packet data.   
+  
 I am writing this decoder as an instructional personal project. Hopefully it
 can be used by others to learn about designing satellite communication 
 receivers.  
+  
 If you want a more full-featured ORBCOMM receiver please check out:  
 https://www.coaa.co.uk/orbcommplotter.htm  
 http://f6cte.free.fr/index_anglais.htm  
-
-
-
+  
+  
+  
 ## Dependencies
-
-Written for py2.7.  
-
+  
+Should work with either Python 2.X or 3.X  
+  
 I use [pyrtlsdr] to record the RF signal with an RTLSDR receiver.  
 [NumPy] and [SciPy] are used for signal processing.  
 [PyEphem] is used to calculate Az/El and doppler shift of the satellites.  
-
+  
 pip install pyrtlsdr, numpy, scipy, pyephem  
-
-
-
+  
+  
+  
 [PyEphem]: https://rhodesmill.org/pyephem/index.html
 [NumPy]: https://www.numpy.org/
 [SciPy]: https://www.scipy.org/
 [pyrtlsdr]: https://github.com/roger-/pyrtlsdr
-
-
-
-
+  
 ## Getting started
   
 #### Offline recording and decoding  
@@ -51,8 +47,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 Not implemented yet.  
   
   
-
-
+  
 ## DSP Training
 
 In the dsp_training folder are a number of scripts that I used to help me understand the DSP that I needed to decode the ORBCOMM signals. The scripts are simulation only and help understand phase recovery, timing recovery, creating symbols from bits, mixing, filtering, etc.  
@@ -82,7 +77,7 @@ I used these two resources as my primary references.
 http://mdkenny.customer.netspace.net.au/Orbcomm.pdf  
 http://www.decodesystems.com/orbcomm.html  
  
-
+  
 ## Data format
 
 In the data folder is a couple files of samples that I have recorded.  
@@ -96,6 +91,9 @@ The files include metadata:
 - tles: a list of lists of the tle lines for each satellite (in the order of the sats list)  
 - timestamp: unix time of the start of the recording  
 - samples: a numpy complex64 array of the samples  
-
+- lat: the latitude of the receiver when the samples were recorded  
+- lon: the longitude of the receiver when the samples were recorded  
+- alt: the elevation of the receiver when the samples were recorded  
+  
 Look at the mat_file_explorer.py script to see an example of how to access the metadata.  
-
+  

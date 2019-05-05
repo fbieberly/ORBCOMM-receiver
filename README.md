@@ -40,14 +40,14 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 
 ## Getting started
   
-### Offline recording and decoding  
-1. First run the update_orbcomm_tle.py script to get the latest two-line elements for the orbcomm satellites.  
-2. Update latitude and longitude of your receiver in record_orbcomm.py  
-3. Record IQ data by running record_orbcomm.py  
-4. Run file_decoder.py to decode a single recording file (defaults to the first file in the /data folder)  
+#### Offline recording and decoding  
+1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the orbcomm satellites.  
+2. Update latitude and longitude of your receiver in _record_orbcomm.py_  
+3. Record IQ data by running _record_orbcomm.py_  
+4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)  
   
   
-### Real-time recording and decoding  
+#### Real-time recording and decoding  
 Not implemented yet.  
   
   
@@ -56,7 +56,7 @@ Not implemented yet.
 
 I used these two resources as my primary references.  
 
-http://mdkenny.customer.netspace.net.au/Orbcomm.pdf
+http://mdkenny.customer.netspace.net.au/Orbcomm.pdf  
 http://www.decodesystems.com/orbcomm.html  
  
 

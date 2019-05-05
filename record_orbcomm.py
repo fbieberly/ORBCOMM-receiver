@@ -63,11 +63,11 @@ while 1:
                 tles.append(active_orbcomm_satellites[sat_name]['tles'])
 
         if len(sats) > 0:
-            print("Satellites overhead: ")
+            print("\nSatellites overhead: ")
             for sat_name in sats:
                 sat = active_orbcomm_satellites[sat_name]['sat_obj']
                 sat.compute(obs)
-                print('{:30}: {:3.1f} degrees elevation'.format(sat_name, degrees(sat.alt)))
+                print('{:20}: {:3.1f} degrees elevation'.format(sat_name, degrees(sat.alt)))
             record_time = time()
             samples = sdr.read_bytes(num_samples_per_recording*2)
             complex_samples = np.frombuffer(samples, dtype=np.uint8)
@@ -81,8 +81,12 @@ while 1:
                         'tles': tles,
                         'fs': sample_rate,
                         'fc': center_freq,
+                        'lat':lat,
+                        'lon':lon,
+                        'alt':alt,
                         }
             savemat('./data/' + filename, save_dict, do_compression=True)
+            print("File saved: {}".format('./data/' + filename))
             file_count -= 1
 
         if file_count <= 0:

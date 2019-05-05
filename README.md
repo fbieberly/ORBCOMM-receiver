@@ -96,4 +96,3 @@ The files include metadata:
 - alt: the elevation of the receiver when the samples were recorded  
   
 Look at the mat_file_explorer.py script to see an example of how to access the metadata.  
-  

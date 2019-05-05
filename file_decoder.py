@@ -31,10 +31,13 @@ from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_ch
 # speed of light
 c = 299792458.0 # m/s
 
+# Where to save decoded packets
+packet_file = r'./packets.txt'
+
 # Where the data files are located
 data_dir = r'./data/'
-packet_file = r'./packets.txt'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[40]
+sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
+
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
 print("Filename: {}".format(sample_file))
@@ -48,6 +51,7 @@ for sat_name in data['sats']:
     frequencies.append(freq1)
     frequencies.append(freq2)
 print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencies])))
+
 # Decode the lower channel
 sat_center_frequency = frequencies[0]
 
@@ -74,7 +78,6 @@ sat_line0, sat_line1, sat_line2 = [str(xx) for xx in data['tles'][0]]
 sat = ephem.readtle(sat_line0, sat_line1, sat_line2)
 sat.compute(obs)
 
-
 # Use the TLE info that was in the .mat file to calculate doppler shift
 # of the satellite's transmission
 relative_vel = sat.range_velocity
@@ -94,7 +97,6 @@ baud_rate = 4800.0
 samples_per_symbol = 2  # We should only need 2 samples per symbol
 decimation = int(sample_rate/(samples_per_symbol*baud_rate))
 decimated_samples = filtered_samples[::decimation]
-
 
 # estimate remaining carrier error (RTLSDR frequency error)
 # signal to the fourth power, take the fft, peak is at frequency offset
@@ -235,7 +237,6 @@ for idx, sample in enumerate(filtered_sig4th):
     frequency_out += beta * phase_error
     phase_out.append(frequency_out)
 
-
 # Phase compensate the IQ samples
 phase_comp_samples = time_recovery_samples * np.conj(np.exp(1j*phase_est[:-1]/4.)) * np.conj(np.exp(1j*np.pi/4.))
 
@@ -318,14 +319,18 @@ for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
             packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8][::-1], 2))
     packets.append(packet)
 
-print("\nList of packets: (### indicates checksum failed)")
+# Save the packets (in hex) to a file
 with open(packet_file, 'w') as f:
     for packet in packets:
         f.write(packet + '\n')
 
+# Print out the parsed packets
+print("\nList of packets: (### indicates checksum failed)")
 for packet in packets:
     output = ''
 
+    # Compute the fletcher16 checksum over the whole packet
+    # 0000 output is a good packet
     if fletcher_checksum(packet) != '0000':
         output += '### '
     for packet_type in packet_dict:
@@ -336,10 +341,10 @@ for packet in packets:
                 output += '{}: {} '.format(part, packet[start:stop])
             print(output)
             break
+    # Unrecognized just means I don't know what these packets are for
+    # would also happen if the header is corrupted
     if output in ['', '### ']:
         print("{}Unrecognized packet: {}".format(output, packet))
-
-exit()
 
 # Plot IQ samples
 plt.figure()

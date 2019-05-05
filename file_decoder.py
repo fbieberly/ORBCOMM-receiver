@@ -23,9 +23,9 @@ from scipy.io import loadmat
 import scipy.signal as scisig
 import matplotlib.pyplot as plt
 
-from orbcomm_packet import packet_headers, new_packet_headers
 from sat_db import active_orbcomm_satellites
-from helpers import butter_lowpass_filter, complex_mix, rrcosfilter
+from orbcomm_packet import packet_headers, packet_dict
+from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_checksum
 
 
 # speed of light
@@ -43,20 +43,23 @@ obs.elevation = alt # Technically is the altitude of observer
 
 # Where the data files are located
 data_dir = r'./data/'
+packet_file = r'./packets.txt'
 sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
 print("Timestamp: {}".format(data['timestamp'][0][0]))
 print("Satellites in recording: {}".format(', '.join(data['sats'])))
-print("Sample rate: {}".format(data['fs'][0][0]))
-print("Center frequency: {}".format(data['fc'][0][0]))
+print("SDR Sample rate: {} Hz".format(data['fs'][0][0]))
+print("SDR Center frequency: {} Hz".format(data['fc'][0][0]))
 frequencies = []
 for sat_name in data['sats']:
     freq1, freq2 = active_orbcomm_satellites[sat_name]['frequencies']
     frequencies.append(freq1)
     frequencies.append(freq2)
 print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencies])))
+# Decode the lower channel
+sat_center_frequency = frequencies[0]
 
 # Extract the values for some further processing
 samples = data['samples'][0]
@@ -73,8 +76,6 @@ sat_line0, sat_line1, sat_line2 = [str(xx) for xx in data['tles'][0]]
 sat = ephem.readtle(sat_line0, sat_line1, sat_line2)
 sat.compute(obs)
 
-# Decode the lower channel
-sat_center_frequency = frequencies[1]
 
 # Use the TLE info that was in the .mat file to calculate doppler shift
 # of the satellite's transmission
@@ -110,7 +111,7 @@ search_window = int(1000. / ((sample_rate/decimation)/nperseg))  # search +/- 1 
 frequency_peak = np.argmax(pxx[len(pxx)/2 - search_window:len(pxx)/2 + search_window])
 freq_offset = -(frequency_peak - search_window)*(sample_rate/decimation/nperseg) / 4
 baseband_samples = complex_mix(decimated_samples, freq_offset, sample_rate/decimation)
-print "Remaining frequency offset: {}".format(freq_offset)
+print "Remaining frequency offset after doppler compensation: {} Hz".format(freq_offset)
 
 # Create RRC taps
 alpha = 0.4
@@ -287,48 +288,59 @@ bit_offset = 0
 print("Number of possible packets: {}".format(num_of_possible_packets))
 
 scores = np.zeros(size_of_packets)
+revscores = np.zeros(size_of_packets)
 for xx in range(0, size_of_packets):
     for yy in range(xx, len(bit_string)-xx-8, 12*8):
-        if bit_string[yy:yy+8] in new_packet_headers:
+        if bit_string[yy:yy+8][::-1] in packet_headers:
             scores[xx] += 1
-
-bit_offset = np.argmax(scores)
-print("Best bit offset: {}, Valid packet headers: {}".format(bit_offset, scores[bit_offset]))
+        if bit_string[yy:yy+8] in packet_headers:
+            revscores[xx] += 1
+        
+reverse = False
+if np.max(scores) < np.max(revscores):
+    reverse = True
+if reverse:
+    bit_offset = np.argmax(revscores)
+else:
+    bit_offset = np.argmax(scores)
 
 packets = []
 for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
-    packet = '{:X}'.format(int(bit_string[xx:xx+size_of_packets], 2))
+    packet = ''
+    for yy in range(0, 96, 8):
+        if reverse:
+            packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8], 2))
+        else:
+            packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8][::-1], 2))
     packets.append(packet)
 
-packets = sorted(packets)
+print("\nList of packets: (### indicates checksum failed)")
+with open(packet_file, 'w') as f:
+    for packet in packets:
+        f.write(packet + '\n')
+
 for packet in packets:
-    print(packet)
+    output = ''
 
-# Use this code to search for bit sequences in the bit stream
-def find_all(a_str, sub):
-    start = 0
-    ret_val = []
-    while True:
-        start = a_str.find(sub, start)
-        if start == -1: 
+    if fletcher_checksum(packet) != '0000':
+        output += '### '
+    for packet_type in packet_dict:
+        packet_info = packet_dict[packet_type]
+        if packet[:2] == packet_info['hex_header']:
+            output += '{}: '.format(packet_type)
+            for part, (start, stop) in packet_info['message_parts']:
+                output += '{}: {} '.format(part, packet[start:stop])
+            print(output)
             break
-        else:
-            ret_val.append(start)
-        start += 1
-    return ret_val
+    if output in ['', '### ']:
+        print("{}Unrecognized packet: {}".format(output, packet))
 
-print('bit seq,     hex seq,  num,  median sep,  median offset')
-for val in range(0, 256):
-    occurances = np.array(find_all(bit_string, "{0:08b}".format(val)))
-    diffs = occurances[1:] - occurances[:-1]
-    mean_offset = np.median([idx%size_of_packets for idx in occurances])
-    print "{:08b} {:8X} {:8} {:8.0f} {:8.0f}".format(val, val, len(occurances), np.median(diffs), mean_offset)
-# exit()
+exit()
 
 # Plot IQ samples
 plt.figure()
 plt.subplot(211)
-plt.title("After carrier recovery")
+plt.title("Before carrier recovery")
 plt.plot(phase_comp_samples[1000:1080].real)
 plt.plot(phase_comp_samples[1000:1080].imag)
 plt.grid()

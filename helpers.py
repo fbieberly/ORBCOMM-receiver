@@ -96,3 +96,31 @@ def rrcosfilter(N, alpha, Ts, Fs):
                     (np.pi*t*(1-(4*alpha*t/Ts)*(4*alpha*t/Ts))/Ts)
         
     return time_idx, h_rrc
+
+def fletcher_checksum(hex_data_str):
+    sum1 = 0
+    sum2 = 0
+
+    if len(hex_data_str)%2 == 1:
+        # hex_data_str = '0' + hex_data_str
+        hex_data_str += '0'
+        print('...')
+
+    for xx in range(0, len(hex_data_str)-1, 2):
+        val = int(hex_data_str[xx:xx+2], 16)
+        sum1 = (sum1 + val)%256
+        sum2 = (sum1 + sum2)%256
+
+    return '{:02X}{:02X}'.format(sum2, sum1)
+
+# from struct import pack, unpack
+def reverse_endian(hex_data_str):
+    out_string = ''
+    for xx in range(0, len(hex_data_str)-1, 2):
+        # print hex_data_str[xx:xx+2]
+        val = '{:08b}'.format(int(hex_data_str[xx:xx+2], 16))
+        # print val
+        # print '{:02X}'.format(int(val[::-1],2))
+        out_string += '{:02X}'.format(int(val[::-1],2))
+
+    return out_string

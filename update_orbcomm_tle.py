@@ -4,7 +4,7 @@ except:
 	from urllib.request import urlopen
 
 response = urlopen('https://www.celestrak.com/NORAD/elements/orbcomm.txt')
-html = str(response.read())
+html = response.read().decode('ascii')
 
 if '21576' in html: # check if NORAD ID of ORBCOMM-X is in text file
 	with open('./tles/orbcomm.txt', 'w') as f:

@@ -31,7 +31,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 
 
 [PyEphem]: https://rhodesmill.org/pyephem/index.html
-[NumPy]: www.numpy.org/
+[NumPy]: https://www.numpy.org/
 [SciPy]: https://www.scipy.org/
 [pyrtlsdr]: https://github.com/roger-/pyrtlsdr
 

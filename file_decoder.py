@@ -105,13 +105,13 @@ nperseg = int(sample_rate/decimation/rbw)
 signal_to_4th_power = np.power(decimated_samples, 4)
 f, pxx = scisig.welch(signal_to_4th_power, fs=sample_rate/decimation, \
                       return_onesided=False, nperseg=nperseg, scaling='density')
-f = (np.roll(f, len(f)/2))
-pxx = np.roll(pxx, len(pxx)/2)
+f = (np.roll(f, int(len(f)/2)))
+pxx = np.roll(pxx, int(len(pxx)/2))
 search_window = int(1000. / ((sample_rate/decimation)/nperseg))  # search +/- 1 kHz around fc
-frequency_peak = np.argmax(pxx[len(pxx)/2 - search_window:len(pxx)/2 + search_window])
+frequency_peak = np.argmax(pxx[int(len(pxx)/2 - search_window):int(len(pxx)/2 + search_window)])
 freq_offset = -(frequency_peak - search_window)*(sample_rate/decimation/nperseg) / 4
 baseband_samples = complex_mix(decimated_samples, freq_offset, sample_rate/decimation)
-print "Remaining frequency offset after doppler compensation: {} Hz".format(freq_offset)
+print("Remaining frequency offset after doppler compensation: {} Hz".format(freq_offset))
 
 # Create RRC taps
 alpha = 0.4
@@ -195,14 +195,14 @@ plt.title("Eye Diagram before matched filter")
 offset = samples_per_symbol * 200
 num_plots = 8
 length = 64
-for xx in xrange(num_plots):
+for xx in range(num_plots):
     plt.plot(baseband_samples[offset:offset+length].imag)
     offset += length
 plt.subplot(312)
 plt.title("After matched filter")
 
 offset = samples_per_symbol * 200
-for xx in xrange(num_plots):
+for xx in range(num_plots):
     plt.plot(matched_filtered_samples[offset:offset+length].imag)
     offset += length
 plt.grid()
@@ -210,7 +210,7 @@ plt.subplot(313)
 plt.title("After timing recovery")
 
 offset = samples_per_symbol * 200
-for xx in xrange(num_plots):
+for xx in range(num_plots):
     plt.plot(time_recovery_samples[offset:offset+length].imag)
     offset += length
 plt.grid()
@@ -368,8 +368,8 @@ plt.subplot(221)
 nperseg = int(sample_rate/100.0)
 f, full_pxx = scisig.welch(samples, fs=sample_rate, nperseg=nperseg, \
                            return_onesided=False, scaling='density')
-f = (np.roll(f, len(f)/2) + center_freq)/1e6
-full_pxx = np.roll(full_pxx, len(full_pxx)/2)
+f = (np.roll(f, int(len(f)/2)) + center_freq)/1e6
+full_pxx = np.roll(full_pxx, int(len(full_pxx)/2))
 full_pxx = 10*np.log10(full_pxx)
 plt.plot(f, full_pxx)
 plt.title("Periodogram of recording\nRed dots are orbcomm channels")
@@ -384,16 +384,16 @@ plt.subplot(222)
 #plot the decimated signal
 f, pxx = scisig.welch(baseband_samples, fs=sample_rate/decimation, \
                       return_onesided=False, nperseg=nperseg, scaling='density')
-f = (np.roll(f, len(f)/2))
-pxx = np.roll(pxx, len(pxx)/2)
+f = (np.roll(f, int(len(f)/2)))
+pxx = np.roll(pxx, int(len(pxx)/2))
 pxx = 10*np.log10(pxx)
 plt.plot(f, pxx, label='Decimated')
 
 # plot the low-pass filtered signal
 f, pxx = scisig.welch(filtered_samples, fs=sample_rate, nperseg=nperseg, \
                       return_onesided=False, scaling='density')
-f = (np.roll(f, len(f)/2))
-pxx = np.roll(pxx, len(pxx)/2)
+f = (np.roll(f, int(len(f)/2)))
+pxx = np.roll(pxx, int(len(pxx)/2))
 pxx = 10*np.log10(pxx)
 
 plt.plot(f, pxx, label='original signal')
@@ -411,8 +411,8 @@ plt.subplot(223)
 nperseg = len(signal_to_4th_power)
 f, pxx = scisig.welch(signal_to_4th_power, fs=sample_rate/decimation, \
                        return_onesided=False, nperseg=nperseg, scaling='density')
-f = (np.roll(f, len(f)/2))
-pxx = np.roll(pxx, len(pxx)/2)
+f = (np.roll(f, int(len(f)/2)))
+pxx = np.roll(pxx, int(len(pxx)/2))
 pxx = 10*np.log10(pxx)
 
 plt.plot(f, pxx)

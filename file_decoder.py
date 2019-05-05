@@ -34,10 +34,10 @@ c = 299792458.0 # m/s
 # Where the data files are located
 data_dir = r'./data/'
 packet_file = r'./packets.txt'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
-
+sample_file = sorted(glob.glob(data_dir + "*.mat"))[40]
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
+print("Filename: {}".format(sample_file))
 print("Timestamp: {}".format(data['timestamp'][0][0]))
 print("Satellites in recording: {}".format(', '.join(data['sats'])))
 print("SDR Sample rate: {} Hz".format(data['fs'][0][0]))
@@ -56,16 +56,11 @@ samples = data['samples'][0]
 center_freq = data['fc'][0][0]
 sample_rate = data['fs'][0][0]
 timestamp = data['timestamp'][0][0]
-# lat = data['lat']
-# lon = data['lon']
-# alt = data['alt']
+lat = data['lat'][0][0]
+lon = data['lon'][0][0]
+alt = data['alt'][0][0]
 
 # PyEphem observer 
-# Imput your receivers latitude, longitude and altitude
-# this is the lat/lon that the data was originally recorded at.
-lat = 43.802953
-lon = -99.210731
-alt = 0 
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer

@@ -116,10 +116,7 @@ def fletcher_checksum(hex_data_str):
 def reverse_endian(hex_data_str):
     out_string = ''
     for xx in range(0, len(hex_data_str)-1, 2):
-        # print hex_data_str[xx:xx+2]
         val = '{:08b}'.format(int(hex_data_str[xx:xx+2], 16))
-        # print val
-        # print '{:02X}'.format(int(val[::-1],2))
         out_string += '{:02X}'.format(int(val[::-1],2))
 
     return out_string

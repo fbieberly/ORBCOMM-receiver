@@ -28,7 +28,7 @@ alt = 0
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer
-min_elevation = 0.0 # in degrees, in urban or heavily wooded areas, increase as appropriate
+min_elevation = 30.0 # in degrees, in urban or heavily wooded areas, increase as appropriate
 
 # Set RTLSDR parameters and initialize
 sample_rate = 1.2288e6
@@ -88,6 +88,29 @@ while 1:
             savemat('./data/' + filename, save_dict, do_compression=True)
             print("File saved: {}".format('./data/' + filename))
             file_count -= 1
+        else:
+            sat_detected = False
+            for minute in range(0, 60*12):
+
+                obs.date = ephem.now() + minute * ephem.minute
+                for sat_name in active_orbcomm_satellites:
+                    sat = active_orbcomm_satellites[sat_name]['sat_obj']
+                    sat.compute(obs)
+                    if degrees(sat.alt) > min_elevation:
+                        sat_detected = True
+                        
+                        
+                        if minute > 1:
+                            print("Minutes until next satellite visible: {:.0f}".format(minute))
+                            sleep(60)
+
+                        break
+                if sat_detected:
+                    break
+            if sat_detected == False:
+                print("No upcoming satellite passes detected within 12 hours.")
+                exit()
+
 
         if file_count <= 0:
             break

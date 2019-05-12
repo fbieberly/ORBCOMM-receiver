@@ -120,3 +120,25 @@ def reverse_endian(hex_data_str):
         out_string += '{:02X}'.format(int(val[::-1],2))
 
     return out_string
+
+def ecef_to_lla(x_ecef, y_ecef, z_ecef):
+    # From: http://www.epsg.org/Portals/0/373-07-2.pdf?ver=2019-03-08-165437-017
+    # page 97
+    f = 1.0 / 298.257223563
+
+    wgs84_a = 6378137.0 # m
+    wgs84_b = wgs84_a*(1.-f)
+    wgs84_e_sqrd = 1. - (wgs84_b**2)/(wgs84_a**2)
+
+    wgs84_eps = wgs84_e_sqrd / (1 - wgs84_e_sqrd)
+    wgs84_p = np.sqrt(x_ecef**2 + y_ecef**2)
+    wgs84_q = np.arctan2((z_ecef * wgs84_a), (wgs84_p * wgs84_b))
+
+    phi = np.arctan2((z_ecef + wgs84_eps * wgs84_b * np.sin(wgs84_q)**3), \
+                    (wgs84_p - wgs84_e_sqrd * wgs84_a * np.cos(wgs84_q)**3))
+    lamd = np.arctan2(y_ecef, x_ecef)
+
+    wgs84_v = (wgs84_a / np.sqrt(1 - wgs84_e_sqrd * np.sin(phi)**2))
+    h = (wgs84_p / np.cos(phi)) - wgs84_v
+
+    return np.degrees(phi), np.degrees(lamd), h

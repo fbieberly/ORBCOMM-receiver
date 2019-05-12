@@ -37,7 +37,7 @@ packet_file = r'./packets.txt'
 
 # Where the data files are located
 data_dir = r'./data/'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
+sample_file = sorted(glob.glob(data_dir + "*.mat"))[-10]
 
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
@@ -391,14 +391,11 @@ for packet in packets:
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
                 print("\tLat/Lon:       {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
                 print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0))
-                exit()
             break
     # Unrecognized just means I don't know what these packets are for
     # would also happen if the header is corrupted
     if output in ['', '### ']:
         print("{}Unrecognized packet: {}".format(output, packet))
-
-exit()
 
 # Plot IQ samples
 plt.figure()

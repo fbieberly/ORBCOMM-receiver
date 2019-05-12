@@ -14,7 +14,7 @@
 import time
 import glob
 import binascii
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import floor, log10
 
 import ephem
@@ -25,7 +25,8 @@ import matplotlib.pyplot as plt
 
 from sat_db import active_orbcomm_satellites
 from orbcomm_packet import packet_dict
-from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_checksum
+from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_checksum, \
+                    ecef_to_lla
 
 
 # speed of light
@@ -42,6 +43,7 @@ sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 data = loadmat(sample_file)
 print("Filename: {}".format(sample_file))
 print("Timestamp: {}".format(data['timestamp'][0][0]))
+print("Data collected on: {}".format(datetime.utcfromtimestamp(data['timestamp'][0][0])))
 print("Satellites in recording: {}".format(', '.join(data['sats'])))
 print("SDR Sample rate: {} Hz".format(data['fs'][0][0]))
 print("SDR Center frequency: {} Hz".format(data['fc'][0][0]))
@@ -295,7 +297,7 @@ packet_headers = [packet_dict[packet_type]['header'] for packet_type in packet_d
 scores = np.zeros(size_of_packets)
 revscores = np.zeros(size_of_packets)
 for xx in range(0, size_of_packets):
-    for yy in range(xx, len(bit_string)-xx-8, 12*8):
+    for yy in range(xx, len(bit_string)-xx-8, size_of_packets):
         if bit_string[yy:yy+8][::-1] in packet_headers:
             scores[xx] += 1
         if bit_string[yy:yy+8] in packet_headers:
@@ -310,14 +312,31 @@ else:
     bit_offset = np.argmax(scores)
 
 packets = []
+last_packet_epheris = False
 for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
+    if last_packet_epheris == True:
+        last_packet_epheris = False
+        continue
     packet = ''
-    for yy in range(0, 96, 8):
+    if reverse:
+        header = '{:02X}'.format(int(bit_string[xx:xx+8], 2))
+    else:
+        header = '{:02X}'.format(int(bit_string[xx:xx+8][::-1], 2))
+
+    ephemeris_header = packet_dict['Ephemeris']['hex_header']
+    packet_length = 12*8
+    if header == ephemeris_header:
+        packet_length = 24*8
+        last_packet_epheris = True
+
+    for yy in range(0, packet_length, 8):
         if reverse:
             packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8], 2))
         else:
             packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8][::-1], 2))
     packets.append(packet)
+
+
 
 # Save the packets (in hex) to a file
 with open(packet_file, 'w') as f:
@@ -340,6 +359,37 @@ for packet in packets:
             for part, (start, stop) in packet_info['message_parts']:
                 output += '{}: {} '.format(part, packet[start:stop])
             print(output)
+            if packet_type == 'Ephemeris':
+                payload = ''.join([packet[xx:xx+2] for xx in range(42, 2, -2)])
+
+                # calculate current satellite time
+                start_date = datetime.strptime('Jan 6 1980 00:00', '%b %d %Y %H:%M')
+                week_number = payload[:4]
+                time_of_week = payload[4:10]
+                this_week = start_date + timedelta(weeks=int(week_number, 16))
+                this_time = this_week + timedelta(seconds=int(time_of_week, 16))
+                print("\tCurrent satellite time: {} Z".format(this_time))
+
+                # calculate satellite ECEF position
+                zdot = payload[10:15] 
+                ydot = payload[15:20] 
+                xdot = payload[20:25] 
+                zpos = payload[25:30][::-1]
+                ypos = payload[30:35][::-1]
+                xpos = payload[35:40][::-1]
+
+                max_r_sat = 8378155.0
+                val_20_bits = 1048576.0
+
+                x_temp = int(xpos[:2], 16) + 256. * int(xpos[2:4], 16) + 256**2 * int(xpos[4:], 16) 
+                x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
+                y_temp = int(ypos[:2], 16) + 256. * int(ypos[2:4], 16) + 256**2 * int(ypos[4:], 16) 
+                y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
+                z_temp = int(zpos[:2], 16) + 256. * int(zpos[2:4], 16) + 256**2 * int(zpos[4:], 16) 
+                z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
+
+                lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
+                print("\tLat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
             break
     # Unrecognized just means I don't know what these packets are for
     # would also happen if the header is corrupted

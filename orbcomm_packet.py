@@ -73,6 +73,7 @@ packet_dict = {
                             'hex_header':'1F',
                             'message_parts':[
                                             ('Sat ID', (2, 4)),  
+                                            ('Data', (4, 48)),  
                                             ],
 
                             },

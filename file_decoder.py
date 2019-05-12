@@ -371,9 +371,9 @@ for packet in packets:
                 print("\tCurrent satellite time: {} Z".format(this_time))
 
                 # calculate satellite ECEF position
-                zdot = payload[10:15] 
-                ydot = payload[15:20] 
-                xdot = payload[20:25] 
+                zdot = payload[10:15][::-1]
+                ydot = payload[15:20][::-1]
+                xdot = payload[20:25][::-1]
                 zpos = payload[25:30][::-1]
                 ypos = payload[30:35][::-1]
                 xpos = payload[35:40][::-1]
@@ -381,20 +381,24 @@ for packet in packets:
                 max_r_sat = 8378155.0
                 val_20_bits = 1048576.0
 
-                x_temp = int(xpos[:2], 16) + 256. * int(xpos[2:4], 16) + 256**2 * int(xpos[4:], 16) 
+                x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16) 
                 x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
-                y_temp = int(ypos[:2], 16) + 256. * int(ypos[2:4], 16) + 256**2 * int(ypos[4:], 16) 
+                y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16) 
                 y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
-                z_temp = int(zpos[:2], 16) + 256. * int(zpos[2:4], 16) + 256**2 * int(zpos[4:], 16) 
+                z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16) 
                 z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
-                print("\tLat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
+                print("\tLat/Lon:       {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
+                print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0))
+                exit()
             break
     # Unrecognized just means I don't know what these packets are for
     # would also happen if the header is corrupted
     if output in ['', '### ']:
         print("{}Unrecognized packet: {}".format(output, packet))
+
+exit()
 
 # Plot IQ samples
 plt.figure()

@@ -42,6 +42,41 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 3. Record IQ data by running _record_orbcomm.py_  
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)  
   
+```
+EXAMPLE OUTPUT  
+Filename: ./data/1552071892p6.mat
+Timestamp: 1552071892.6
+Data collected on: 2019-03-08 19:04:52.600117
+Satellites in recording: orbcomm fm114
+SDR Sample rate: 1228800.0 Hz
+SDR Center frequency: 137500000.0 Hz
+Satellite frequencies: 137287500.0, 137737500.0
+Remaining frequency offset after doppler compensation: -141.0 Hz
+Number of possible packets: 100
+
+List of packets: (### indicates checksum failed)
+### Unrecognized packet: AF0C3958A56A1A7A9BE0ED2B
+Fill: Data: 19F1D8528E1EF9701DED 
+Fill: Data: 5A8C1A5E354CE775C6A3 
+Message: Total length: 2 Part: 0 Data: 001F05CE01C0721828 
+Message: Total length: 2 Part: 1 Data: 507102000000000032 
+Message: Total length: 3 Part: 0 Data: A241000129687B035E 
+Message: Total length: 3 Part: 1 Data: 921E026637E0228277 
+Message: Total length: 3 Part: 2 Data: A236830000000000F7 
+Unrecognized packet: 0B01FD24CCCCCC204501CF3A
+Sync: Code: 65A8F9 Sat ID: 2C 
+Downlink_info: Total length: 3 Part: 0 Data: 27310750A005640094 
+Downlink_info: Total length: 3 Part: 1 Data: 7D000BB89010130195 
+Downlink_info: Total length: 3 Part: 2 Data: 1D011400000000003F 
+Network: Total length: 1 Part: 0 Data: 7800010000000000E2 
+Ephemeris: Sat ID: 2C Data: 98E3D5043B9BC34CDDF04C3CE66F98D5A307FB07E1D8 
+	Current satellite time: 2019-03-08 19:04:53 Z
+	Lat/Lon:  36.9359, -119.0865, Altitude: 1041.4 km
+Unrecognized packet: 0B011C2AEDEEEE409B02A761
+Unrecognized packet: 0B01641D76989944450169D9
+```
+
+
   
 #### Real-time recording and decoding  
 Not implemented yet.  

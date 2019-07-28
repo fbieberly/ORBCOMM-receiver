@@ -1,3 +1,12 @@
+##############################################################################
+#
+# Author: Frank Bieberly
+# Date: 30 April 2019
+# Name: helpers.py
+# Description: 
+# This is a collection of helper functions needed for this project.
+#
+##############################################################################
 
 from glob import glob
 
@@ -39,12 +48,27 @@ def butter_lowpass_filter(data, cutoff, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-def complex_mix(arr, freq_shift, sample_rate):
+def complex_mix(arr, freq_shift, sample_rate, phase=0.0):
+    '''
+    inputs: 
+        arr: numpy array of complex samples
+        freq_shift: frequency shift in Hz
+        sample_rate: sample rate of the samples in arr
+        phase (optional): the starting phase of the shifting signal
+    outputs:
+        shifted_signal: numpy array of complex samples at new shifted frequency
+        ret_phase: the phase of shifting signal (one time step beyond end of array)
+
+    I added the phase information, so that you can shift multiple chunks of samples
+    and keep them all phase coherent with each other.
+    '''
     duration = len(arr)*1.0/sample_rate
-    t = np.arange(0, duration*2.0, 1.0/sample_rate)[:len(arr)] # Need to make sure you have as many of these samples as you have IQ samples. Sometimes I use: t = np.arange(0, duration*2, 1.0/sample_rate)[:len(signal)]
-    complex_cos = np.exp( 1j * 2*np.pi * freq_shift * t, dtype=np.complex64)
+    t = np.arange(0, duration*2.0, 1.0/sample_rate)[:len(arr)+1] # Need to make sure you have as many of these samples as you have IQ samples. Sometimes I use: t = np.arange(0, duration*2, 1.0/sample_rate)[:len(signal)]
+    complex_cos = np.exp( 1j * 2*np.pi * freq_shift * t[:-1] + phase, dtype=np.complex64)
     shifted_signal = arr * complex_cos
-    return shifted_signal
+    ret_phase = (1j * 2*np.pi * freq_shift * t[-1] + phase)%(2 * np.pi)
+    return shifted_signal, ret_phase
+
 
 # From: https://github.com/veeresht/CommPy/blob/master/commpy/filters.py
 def rrcosfilter(N, alpha, Ts, Fs):
@@ -97,14 +121,13 @@ def rrcosfilter(N, alpha, Ts, Fs):
         
     return time_idx, h_rrc
 
+# Derived from wikipedia: https://en.wikipedia.org/wiki/Fletcher%27s_checksum
 def fletcher_checksum(hex_data_str):
     sum1 = 0
     sum2 = 0
 
     if len(hex_data_str)%2 == 1:
-        # hex_data_str = '0' + hex_data_str
         hex_data_str += '0'
-        print('...')
 
     for xx in range(0, len(hex_data_str)-1, 2):
         val = int(hex_data_str[xx:xx+2], 16)

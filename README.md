@@ -44,7 +44,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem, matplotlib
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Record IQ data by running _record_orbcomm.py_
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
-    a. The file it decodes is selected near the top of the file. Change it there if you wish to decode other files.
+    1. The file it decodes is selected near the top of the file. Change it there if you wish to decode other files.
 
 ```
 EXAMPLE OUTPUT
@@ -100,9 +100,9 @@ Unrecognized packet: 0A506D28227274970012FF61
 1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the orbcomm satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Run _realtime_receiver.py_
-    a. If there is no satellite overhead it will tell you how long the wait is.
-    b. I recommend you use [gPredict] to know where the ORBCOMM satellites are.
-    c. Note that not all the ORBCOMM satellites still transmit. Look in _sat_db.py_ to see the active ones.
+    1. If there is no satellite overhead it will tell you how long the wait is.
+    1. I recommend you use [gPredict] to know where the ORBCOMM satellites are.
+    1. Note that not all the ORBCOMM satellites still transmit. Look in _sat_db.py_ to see the active ones.
 
 
 [gPredict]: http://gpredict.oz9aec.net/

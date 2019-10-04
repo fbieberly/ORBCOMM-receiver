@@ -17,6 +17,9 @@ from scipy.signal import butter, lfilter
 def get_tle_lines(sat_name, tle_dir='./tles'):
     line0, line1, line2 = '', '', ''
     tles = glob(tle_dir + '/*.txt')
+    if len(tles) == 0:
+        print("No TLE files found. Run update_orbcomm_tle.py")
+        exit()
     for tle in tles:
         with open(tle, 'r') as f:
             text = 'abc'

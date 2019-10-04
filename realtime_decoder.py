@@ -3,16 +3,15 @@
 # Author: Frank Bieberly
 # Date: 14 July 2019
 # Name: realtime_decoder.py
-# Description: 
+# Description:
 # This is a class designed for real time decoding of orbcomm satellite passes
-# 
+#
 #
 ##############################################################################
 
 import numpy as np
 from scipy.signal import firwin, welch
 from datetime import datetime, timedelta
-
 
 from orbcomm_packet import packet_dict
 from helpers import complex_mix, rrcosfilter
@@ -113,7 +112,7 @@ class RealtimeDecoder():
         self.doppler=doppler
         self.first_median = np.median(np.abs(samples))
         norm_sample_block = samples / self.first_median
-        
+
         # Mix the samples to baseband (compensating for doppler shift)
         # There will be a residual carrier error because of the RLTSDR frequency offset
         freq_shift = self.center_frequency - self.sat_center_frequency - self.doppler
@@ -121,7 +120,7 @@ class RealtimeDecoder():
 
         samps_to_filter = int(len(mixed_down_samples) - self.lpf_order)
         while samps_to_filter % self.decimation != 0:
-            samps_to_filter -= 1 
+            samps_to_filter -= 1
 
         # Low pass filter and decimate in one step
         decimated_samples = np.zeros(samps_to_filter/self.decimation, dtype=np.complex64)
@@ -144,6 +143,12 @@ class RealtimeDecoder():
         print("Frequency offset: {}".format(self.frequency_offset))
 
     def decode_samples_to_packets(self, samples, doppler=0.0):
+
+        # on the very first call, first_samples will try to determine the frequency offset
+        # of the SDR.
+        if self.frequency_offset == None:
+            self.first_samples(samples, doppler=doppler)
+
         # process samples
         # if doppler shift is provided, it is compensated for
         # otherwise, the phase recovery algorithm attempts to control it
@@ -158,7 +163,7 @@ class RealtimeDecoder():
 
         samps_to_filter = int(len(mix_sample_buffer) - self.lpf_order)
         while samps_to_filter % self.decimation != 0:
-            samps_to_filter -= 1 
+            samps_to_filter -= 1
 
         # Low pass filter and decimate in one step
         self.decimated_samples = np.zeros(samps_to_filter / self.decimation, dtype=np.complex64)
@@ -211,7 +216,7 @@ class RealtimeDecoder():
             self.tr_tau += self.tr_dtau / self.samples_per_symbol
 
         self.tr_last_sample = time_recovery_samples[-1]
-        
+
         phase_comp_samples = np.zeros(len(time_recovery_samples), dtype=np.complex64)
 
         # Costas loop
@@ -248,15 +253,16 @@ class RealtimeDecoder():
             if angle > 0: bit = 1
             bits[xx] = bit
 
-        self.ave_angles_above_zero = np.mean(angles[np.where(angles > 0)])
-        self.ave_angles_below_zero = np.mean(angles[np.where(angles < 0)])
+        if len(angles) > 0:
+            self.ave_angles_above_zero = np.mean(angles[np.where(angles > 0)])
+            self.ave_angles_below_zero = np.mean(angles[np.where(angles < 0)])
 
         self.last_symbol = demod_symbols[-1]
         self.bit_string += ''.join([str(int(bit)) for bit in bits])
 
         num_of_possible_packets = len(self.bit_string) / self.size_of_packets
         if num_of_possible_packets > 20 and self.bit_offset == -1:
-            print("Calculate possible bit offset")
+            # print("Calculate possible bit offset")
             # for all bit offsets (of the length of the packets)
             # calculate a score for most valid headers of that offset
             # this also checks a bit-reversed score (in case my endianness is reversed)
@@ -270,7 +276,8 @@ class RealtimeDecoder():
                         revscores[xx] += 1
 
             self.reverse = False
-            if max(np.max(scores), np.max(revscores)) > 15:
+            max_score = max(np.max(scores), np.max(revscores))
+            if max_score > 15 and float(max_score)/num_of_possible_packets > 0.5:
                 if np.max(scores) < np.max(revscores):
                     self.reverse = True
                 if self.reverse:
@@ -311,7 +318,99 @@ class RealtimeDecoder():
                 if packet != '':
                     bits_to_remove += packet_length
                     self.packets.append(packet)
-            self.bit_string = self.bit_string[bits_to_remove:]
+            # self.bit_string = self.bit_string[bits_to_remove:]
+
+        # If 90% or more of the packets don't pass the checksum
+        # leave the bits in the bit string and reset the bit offset to -1
+        # on the next loop the code will recheck the bit offset to see if a
+        # better bit offset will allow us to decode the bits
+        if len(self.packets) > 0:
+            total_packets = len(self.packets)
+            bad_packets = 0.0
+            for packet in self.packets:
+                if fletcher_checksum(packet) != '0000':
+                    bad_packets += 1
+            if float(bad_packets)/total_packets > 0.9:
+                self.packets = []
+                self.bit_offset = -1
+                print("Packets failing checksum. Resetting bit offset.")
+            else:
+                self.bit_string = self.bit_string[bits_to_remove:]
+
+        if num_of_possible_packets > 60 and self.bit_offset == -1:
+            print("RESETTING!")
+            self.init_default_values()
+
+        packet_dict_list = []
+        for packet in self.packets:
+
+            # Compute the fletcher16 checksum over the whole packet
+            # 0000 output is a good packet
+            if fletcher_checksum(packet) != '0000':
+                self.bad_packets += 1
+                continue
+            else:
+                self.good_packets += 1
+            if self.good_packets + self.bad_packets > 500:
+                self.good_packets -= 0.5
+                self.bad_packets -= 0.5
+                if self.good_packets < 0: self.good_packets = 0.0
+                if self.bad_packets < 0: self.bad_packets = 0.0
+
+            packet_dict = {}
+            for packet_type in self.packet_dict:
+                packet_info = self.packet_dict[packet_type]
+                if packet[:2] == packet_info['hex_header']:
+                    packet_dict['packet_type'] = packet_type
+
+                    for part, (start, stop) in packet_info['message_parts']:
+                        packet_dict[part] = packet[start:stop]
+
+                    if packet_type == 'Ephemeris':
+                        payload = ''.join([packet[xx:xx+2] for xx in range(42, 2, -2)])
+
+                        # calculate current satellite time
+                        start_date = datetime.strptime('Jan 6 1980 00:00', '%b %d %Y %H:%M')
+                        week_number = payload[:4]
+                        time_of_week = payload[4:10]
+                        this_week = start_date + timedelta(weeks=int(week_number, 16))
+                        this_time = this_week + timedelta(seconds=int(time_of_week, 16))
+
+                        # calculate satellite ECEF position
+                        zdot = payload[10:15][::-1]
+                        ydot = payload[15:20][::-1]
+                        xdot = payload[20:25][::-1]
+                        zpos = payload[25:30][::-1]
+                        ypos = payload[30:35][::-1]
+                        xpos = payload[35:40][::-1]
+
+                        max_r_sat = 8378155.0
+                        val_20_bits = 1048576.0
+
+                        x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
+                        x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
+                        y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16)
+                        y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
+                        z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
+                        z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
+
+                        lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
+                        self.sat_lat = lat
+                        self.sat_lon = lon
+                        self.sat_alt = alt
+                        packet_dict['lat'] = lat
+                        packet_dict['lon'] = lon
+                        packet_dict['alt'] = alt
+                        packet_dict['week_num'] = int(week_number, 16)
+                        packet_dict['gps_time'] = this_time
+                    break
+
+            # Unrecognized just means I don't know what these packets are for
+            # would also happen if the header is corrupted
+            if 'packet_type' not in packet_dict:
+                packet_dict['packet_type'] = 'Unrecognized'
+                packet_dict['data'] = packet[2:]
+        return packet_dict_list
 
     def parse_packets(self):
         for packet in self.packets:
@@ -363,11 +462,11 @@ class RealtimeDecoder():
                         max_r_sat = 8378155.0
                         val_20_bits = 1048576.0
 
-                        x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16) 
+                        x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
                         x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
-                        y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16) 
+                        y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16)
                         y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
-                        z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16) 
+                        z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
                         z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
                         lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)

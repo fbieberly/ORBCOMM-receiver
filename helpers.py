@@ -1,3 +1,12 @@
+##############################################################################
+#
+# Author: Frank Bieberly
+# Date: 30 April 2019
+# Name: helpers.py
+# Description:
+# This is a collection of helper functions needed for this project.
+#
+##############################################################################
 
 from glob import glob
 
@@ -8,6 +17,9 @@ from scipy.signal import butter, lfilter
 def get_tle_lines(sat_name, tle_dir='./tles'):
     line0, line1, line2 = '', '', ''
     tles = glob(tle_dir + '/*.txt')
+    if len(tles) == 0:
+        print("No TLE files found. Run update_orbcomm_tle.py")
+        exit()
     for tle in tles:
         with open(tle, 'r') as f:
             text = 'abc'
@@ -39,39 +51,54 @@ def butter_lowpass_filter(data, cutoff, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-def complex_mix(arr, freq_shift, sample_rate):
+def complex_mix(arr, freq_shift, sample_rate, phase=0.0):
+    '''
+    inputs:
+        arr: numpy array of complex samples
+        freq_shift: frequency shift in Hz
+        sample_rate: sample rate of the samples in arr
+        phase (optional): the starting phase of the shifting signal
+    outputs:
+        shifted_signal: numpy array of complex samples at new shifted frequency
+        ret_phase: the phase of shifting signal (one time step beyond end of array)
+
+    I added the phase information, so that you can shift multiple chunks of samples
+    and keep them all phase coherent with each other.
+    '''
     duration = len(arr)*1.0/sample_rate
-    t = np.arange(0, duration*2.0, 1.0/sample_rate)[:len(arr)] # Need to make sure you have as many of these samples as you have IQ samples. Sometimes I use: t = np.arange(0, duration*2, 1.0/sample_rate)[:len(signal)]
-    complex_cos = np.exp( 1j * 2*np.pi * freq_shift * t, dtype=np.complex64)
+    t = np.arange(0, duration*2.0, 1.0/sample_rate)[:len(arr)+1] # Need to make sure you have as many of these samples as you have IQ samples. Sometimes I use: t = np.arange(0, duration*2, 1.0/sample_rate)[:len(signal)]
+    complex_cos = np.exp( 1j * 2*np.pi * freq_shift * t[:-1] + phase, dtype=np.complex64)
     shifted_signal = arr * complex_cos
-    return shifted_signal
+    ret_phase = (1j * 2*np.pi * freq_shift * t[-1] + phase)
+    return shifted_signal, ret_phase
+
 
 # From: https://github.com/veeresht/CommPy/blob/master/commpy/filters.py
 def rrcosfilter(N, alpha, Ts, Fs):
     """
     Generates a root raised cosine (RRC) filter (FIR) impulse response.
-    
+
     Parameters
     ----------
-    N : int 
+    N : int
         Length of the filter in samples.
-    
+
     alpha: float
         Roll off factor (Valid values are [0, 1]).
-    
+
     Ts : float
         Symbol period in seconds.
-    
-    Fs : float 
+
+    Fs : float
         Sampling Rate in Hz.
-    
+
     Returns
     ---------
     h_rrc : 1-D ndarray of floats
         Impulse response of the root raised cosine filter.
-    
-    time_idx : 1-D ndarray of floats 
-        Array containing the time indices, in seconds, for 
+
+    time_idx : 1-D ndarray of floats
+        Array containing the time indices, in seconds, for
         the impulse response.
     """
     N = int(N)
@@ -79,7 +106,7 @@ def rrcosfilter(N, alpha, Ts, Fs):
     time_idx = ((np.arange(N)-N/2))*T_delta
     sample_num = np.arange(N)
     h_rrc = np.zeros(N, dtype=float)
-        
+
     for x in sample_num:
         t = (x-N/2)*T_delta
         if t == 0.0:
@@ -94,17 +121,16 @@ def rrcosfilter(N, alpha, Ts, Fs):
             h_rrc[x] = (np.sin(np.pi*t*(1-alpha)/Ts) +  \
                     4*alpha*(t/Ts)*np.cos(np.pi*t*(1+alpha)/Ts))/ \
                     (np.pi*t*(1-(4*alpha*t/Ts)*(4*alpha*t/Ts))/Ts)
-        
+
     return time_idx, h_rrc
 
+# Derived from wikipedia: https://en.wikipedia.org/wiki/Fletcher%27s_checksum
 def fletcher_checksum(hex_data_str):
     sum1 = 0
     sum2 = 0
 
     if len(hex_data_str)%2 == 1:
-        # hex_data_str = '0' + hex_data_str
         hex_data_str += '0'
-        print('...')
 
     for xx in range(0, len(hex_data_str)-1, 2):
         val = int(hex_data_str[xx:xx+2], 16)

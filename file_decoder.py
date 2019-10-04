@@ -3,19 +3,16 @@
 # Author: Frank Bieberly
 # Date: 30 April 2019
 # Name: file_decoder.py
-# Description: 
+# Description:
 # This script takes in .mat files (produced by record_spectrum_orbcomm.py) and
-# produces multiple plots of the signals spectrum, constellation, timing 
-# recovery, eye diagram, and IQ samples. Additionally, decoded bits are printed
-# and saved to a file.
+# produces multiple plots of the signals spectrum, constellation, timing
+# recovery, eye diagram, and IQ samples. Additionally, raw decoded bits are
+# printed and saved to a file (./packets.txt).
 #
 ##############################################################################
 
-import time
 import glob
-import binascii
 from datetime import datetime, timedelta
-from math import floor, log10
 
 import ephem
 import numpy as np
@@ -25,8 +22,8 @@ import matplotlib.pyplot as plt
 
 from sat_db import active_orbcomm_satellites
 from orbcomm_packet import packet_dict
-from helpers import butter_lowpass_filter, complex_mix, rrcosfilter, fletcher_checksum, \
-                    ecef_to_lla
+from helpers import butter_lowpass_filter, complex_mix, rrcosfilter
+from helpers import fletcher_checksum, ecef_to_lla
 
 
 # speed of light
@@ -57,7 +54,7 @@ print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencie
 # Decode the lower channel
 sat_center_frequency = frequencies[0]
 
-# Extract the values for some further processing
+# Extract the values from file for some further processing
 samples = data['samples'][0]
 center_freq = data['fc'][0][0]
 sample_rate = data['fs'][0][0]
@@ -66,7 +63,7 @@ lat = data['lat'][0][0]
 lon = data['lon'][0][0]
 alt = data['alt'][0][0]
 
-# PyEphem observer 
+# PyEphem observer
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer
@@ -88,7 +85,7 @@ doppler = c/(c+relative_vel) * sat_center_frequency - sat_center_frequency
 # Mix the samples to baseband (compensating for doppler shift)
 # There will be a residual carrier error because of the RLTSDR frequency offset
 freq_shift = center_freq - sat_center_frequency - doppler
-mixed_down_samples = complex_mix(samples, freq_shift, sample_rate)
+mixed_down_samples, _ = complex_mix(samples, freq_shift, sample_rate)
 
 # Low pass filter the signal
 filter_freq = 10e3
@@ -104,7 +101,8 @@ decimated_samples = filtered_samples[::decimation]
 # signal to the fourth power, take the fft, peak is at frequency offset
 rbw = 1
 nperseg = int(sample_rate/decimation/rbw)
-signal_to_4th_power = np.power(decimated_samples, 4)
+# take first half of the samples to the 4th power.
+signal_to_4th_power = np.power(decimated_samples[:int(len(decimated_samples)/2.0):], 4)
 f, pxx = scisig.welch(signal_to_4th_power, fs=sample_rate/decimation, \
                       return_onesided=False, nperseg=nperseg, scaling='density')
 f = (np.roll(f, int(len(f)/2)))
@@ -112,7 +110,7 @@ pxx = np.roll(pxx, int(len(pxx)/2))
 search_window = int(1000. / ((sample_rate/decimation)/nperseg))  # search +/- 1 kHz around fc
 frequency_peak = np.argmax(pxx[int(len(pxx)/2 - search_window):int(len(pxx)/2 + search_window)])
 freq_offset = -(frequency_peak - search_window)*(sample_rate/decimation/nperseg) / 4
-baseband_samples = complex_mix(decimated_samples, freq_offset, sample_rate/decimation)
+baseband_samples, _ = complex_mix(decimated_samples, freq_offset, sample_rate/decimation)
 print("Remaining frequency offset after doppler compensation: {} Hz".format(freq_offset))
 
 # Create RRC taps
@@ -140,6 +138,8 @@ buf_dz  = [0.,0.,0.]
 
 dtau_vect = np.zeros(len(matched_filtered_samples))
 tau_vect = np.zeros(len(matched_filtered_samples))
+timing_error = np.zeros(len(matched_filtered_samples))
+err = 0.0
 
 for i in range(1, len(matched_filtered_samples)):
     # push sample into interpolating filter
@@ -149,12 +149,13 @@ for i in range(1, len(matched_filtered_samples)):
     # interpolate matched filter output
     hi   = np.sinc(th - tau) * w  # interpolating filter coefficients
     hi /= np.sum(hi)
-    time_recovery_samples[i] = np.dot(buf, np.flip(hi))    # compute matched filter output
+    time_recovery_samples[i] = np.dot(buf, np.flip(hi, 0))    # compute matched filter output
 
     # take (approximate) derivative of filter output
     buf_dz[:-1] = buf_dz[1:]
     buf_dz[-1] = time_recovery_samples[i]
     dz = -np.dot(buf_dz, np.array([-1, 0, 1]))
+
 
     # determine if an output sample needs to be computed
     counter = counter + 1
@@ -165,13 +166,11 @@ for i in range(1, len(matched_filtered_samples)):
         # compute timing error signal, accounting for delay
         err = np.tanh( (dz * np.conj(time_recovery_samples[i-1])).real )
 
-        # update timing estimate
-        tau = tau + alpha*err
-
         # update timing rate change
         dtau = dtau + alpha * err
         tau  = tau  +  beta * err
 
+    timing_error[i] = err
     # update timing error
     tau = tau + dtau/samples_per_symbol
 
@@ -181,13 +180,18 @@ for i in range(1, len(matched_filtered_samples)):
 
 # Plot timing offset
 plt.figure()
-plt.subplot(211)
+plt.subplot(311)
 plt.title("Timing offset (tau)")
 plt.plot(tau_vect)
 
-plt.subplot(212)
+plt.subplot(312)
 plt.title("Derivative (Dtau)")
 plt.plot(dtau_vect)
+plt.tight_layout()
+
+plt.subplot(313)
+plt.title("Timing error signal")
+plt.plot(timing_error)
 plt.tight_layout()
 
 # Plot eye-diagram
@@ -218,29 +222,54 @@ for xx in range(num_plots):
 plt.grid()
 plt.tight_layout()
 
-# After timing recovery, performing a fine-frequency PLL
-# First take the signal to the fourth power, then low pass filter
-filter_freq = 0.1e3
-signal_to_4th_power2 = np.power(time_recovery_samples, 4)
-filtered_sig4th = butter_lowpass_filter(signal_to_4th_power2, filter_freq, sample_rate/decimation, order=5)
-
-# PLL code loosely based on liquid dsp simple pll tutorial: 
-# http://liquidsdr.org/blog/pll-simple-howto/
+# Costas loop
 phase_est = np.zeros(len(time_recovery_samples)+1)
-alpha = 0.05
-beta = 0.5 * alpha**2
+alpha = 0.03
+beta = 0.2 * alpha**2
 frequency_out = 0.0
-phase_out = []
+freq_out = []
 
-for idx, sample in enumerate(filtered_sig4th):
-    signal_out = np.exp(1j * phase_est[idx])
-    phase_error = np.angle( sample * np.conj(signal_out) )
-    phase_est[idx+1] = phase_est[idx] + alpha * phase_error
+for idx, sample in enumerate(time_recovery_samples):
+    signal_out = sample * np.exp(-1j * phase_est[idx])
+    phase_error = np.sign(signal_out.real)*signal_out.imag - np.sign(signal_out.imag)*signal_out.real
     frequency_out += beta * phase_error
-    phase_out.append(frequency_out)
+    phase_est[idx+1] = phase_est[idx] + alpha * phase_error + frequency_out
+    freq_out.append(frequency_out)
+
+# Alternative phase correcting code:
+# PLL code loosely based on liquid dsp simple pll tutorial:
+# http://liquidsdr.org/blog/pll-simple-howto/
+## After timing recovery, performing a fine-frequency PLL
+## First take the signal to the fourth power, then low pass filter
+# filter_freq = 0.5e3
+# signal_to_4th_power2 = np.power(time_recovery_samples, 4)
+# filtered_sig4th = butter_lowpass_filter(signal_to_4th_power2, filter_freq, sample_rate/decimation, order=5)
+# phase_est = np.zeros(len(time_recovery_samples)+1)
+# alpha = 0.01
+# beta = 0.2 * alpha**2
+# frequency_out = 0.0
+# freq_out = []
+# for idx, sample in enumerate(filtered_sig4th):
+#     signal_out = np.exp(1j * phase_est[idx])
+#     phase_error = np.angle( sample * np.conj(signal_out) )
+#     old_freq = frequency_out
+#     frequency_out += beta * phase_error
+#     phase_est[idx+1] = phase_est[idx] + alpha * phase_error + frequency_out
+#     freq_out.append(frequency_out)
+
+plt.figure()
+plt.subplot(211)
+plt.title('Phase output of PLL')
+plt.plot(phase_est)
+plt.grid()
+
+plt.subplot(212)
+plt.title('Frequency of PLL')
+plt.plot(freq_out)
+plt.grid()
 
 # Phase compensate the IQ samples
-phase_comp_samples = time_recovery_samples * np.conj(np.exp(1j*phase_est[:-1]/4.)) * np.conj(np.exp(1j*np.pi/4.))
+phase_comp_samples = time_recovery_samples * np.conj(np.exp(1j*phase_est[:-1]))
 
 # Decode to bits
 # normalize phase compensated samples;
@@ -273,14 +302,8 @@ plt.ylabel('Angle (degrees)')
 plt.plot(angles, 'x')
 plt.grid()
 
-# The bits are xor'ed, so xor them again to retreive the original bit stream
-xord_bits = []
-for xx in range(1, len(bits)):
-    xor = 0
-    if np.abs(sum(bits[xx-1:xx])) == 1.0:
-        xor = 1
-    xord_bits.append(xor)
-bit_string = ''.join([str(bit) for bit in xord_bits])
+# convert to a string of 0's and 1's
+bit_string = ''.join([str(bit) for bit in bits])
 
 # Find first full packet
 size_of_packets = 12*8 # bits
@@ -302,7 +325,7 @@ for xx in range(0, size_of_packets):
             scores[xx] += 1
         if bit_string[yy:yy+8] in packet_headers:
             revscores[xx] += 1
-        
+
 reverse = False
 if np.max(scores) < np.max(revscores):
     reverse = True
@@ -310,6 +333,8 @@ if reverse:
     bit_offset = np.argmax(revscores)
 else:
     bit_offset = np.argmax(scores)
+print("Bit stream offset: {}".format(bit_offset))
+
 
 packets = []
 last_packet_epheris = False
@@ -335,8 +360,6 @@ for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
         else:
             packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8][::-1], 2))
     packets.append(packet)
-
-
 
 # Save the packets (in hex) to a file
 with open(packet_file, 'w') as f:
@@ -381,11 +404,11 @@ for packet in packets:
                 max_r_sat = 8378155.0
                 val_20_bits = 1048576.0
 
-                x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16) 
+                x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
                 x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
-                y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16) 
+                y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16)
                 y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
-                z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16) 
+                z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
                 z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
@@ -412,7 +435,6 @@ plt.plot(time_recovery_samples[1000:1080].imag)
 plt.grid()
 plt.tight_layout()
 
-
 # Plot spectrum of recording
 plt.figure()
 plt.subplot(221)
@@ -431,8 +453,8 @@ for freq in frequencies:
     plt.plot(freq/1e6, low_point, 'ro')
 
 # Plot one of the channels as baseband
+# and plot the decimated signal
 plt.subplot(222)
-#plot the decimated signal
 f, pxx = scisig.welch(baseband_samples, fs=sample_rate/decimation, \
                       return_onesided=False, nperseg=nperseg, scaling='density')
 f = (np.roll(f, int(len(f)/2)))
@@ -473,7 +495,6 @@ plt.xlabel("Frequency (Hz)")
 plt.ylabel("Magnitude (dB)")
 plt.tight_layout()
 
-
 # Plot complex samples from one channel
 plt.figure()
 ax = plt.subplot(111)
@@ -487,6 +508,7 @@ plt.legend(loc='best')
 plt.title("Complex samples (10k samples)")
 plt.xlabel("Real")
 plt.ylabel("Imag")
+plt.grid()
 ax.set_aspect(aspect=1)
 plt.tight_layout()
 plt.show()

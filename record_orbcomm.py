@@ -1,3 +1,18 @@
+##############################################################################
+#
+# Author: Frank Bieberly
+# Date: 30 April 2019
+# Name: record_orbcomm.py
+# Description:
+# This script will record samples from any overhead satellite (or it will wait
+# until a satellite is overhead). It will create 100 2-second recordings. The
+# data is then stored in .mat files in the "./data" folder. If there are
+# multiple satellites overhead, all of them get recorded and the names and tles
+# of the satellites are recorded in the file metadata.
+# Once these recordings are made, you can explore the contents with the
+# file_decoder.py or plot_recording_waterfall.py scripts.
+#
+##############################################################################
 
 from time import time, sleep
 from math import floor, degrees
@@ -10,6 +25,7 @@ from scipy.io import savemat
 from helpers import get_tle_lines
 from sat_db import active_orbcomm_satellites
 
+from CONFIG import *
 
 # Create a pyephem sat object for all the active satellites
 # using latest TLE data
@@ -19,16 +35,11 @@ for name in active_orbcomm_satellites:
     active_orbcomm_satellites[name]['sat_obj'] = sat
     active_orbcomm_satellites[name]['tles'] = [sat_line0, sat_line1, sat_line2]
 
-
-# PyEphem observer 
-# Imput your receivers latitude, longitude and altitude
-lat = 43.802953
-lon = -99.210731
-alt = 0 
+# PyEphem observer
+# set lat/long/alt in the CONFIG file
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer
-min_elevation = 30.0 # in degrees, in urban or heavily wooded areas, increase as appropriate
 
 # Set RTLSDR parameters and initialize
 sample_rate = 1.2288e6
@@ -98,8 +109,8 @@ while 1:
                     sat.compute(obs)
                     if degrees(sat.alt) > min_elevation:
                         sat_detected = True
-                        
-                        
+
+
                         if minute > 1:
                             print("Minutes until next satellite visible: {:.0f}".format(minute))
                             sleep(60)

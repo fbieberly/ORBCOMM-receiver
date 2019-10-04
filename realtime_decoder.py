@@ -123,7 +123,7 @@ class RealtimeDecoder():
             samps_to_filter -= 1
 
         # Low pass filter and decimate in one step
-        decimated_samples = np.zeros(samps_to_filter/self.decimation, dtype=np.complex64)
+        decimated_samples = np.zeros(int(samps_to_filter/self.decimation), dtype=np.complex64)
         for yy in range(0, len(decimated_samples)):
             temp_samples = mixed_down_samples[yy*self.decimation:int(yy*self.decimation+self.lpf_order)]
             decimated_samples[yy] = np.dot(self.lpf_fir_taps, temp_samples)
@@ -166,7 +166,7 @@ class RealtimeDecoder():
             samps_to_filter -= 1
 
         # Low pass filter and decimate in one step
-        self.decimated_samples = np.zeros(samps_to_filter / self.decimation, dtype=np.complex64)
+        self.decimated_samples = np.zeros(int(samps_to_filter / self.decimation), dtype=np.complex64)
         for yy in range(0, len(self.decimated_samples)):
             temp_samples = mix_sample_buffer[yy*self.decimation:int(yy * self.decimation + self.lpf_order)]
             self.decimated_samples[yy] = np.dot(self.lpf_fir_taps, temp_samples)

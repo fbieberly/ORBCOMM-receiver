@@ -3,7 +3,7 @@
 # Author: Frank Bieberly
 # Date: 30 April 2019
 # Name: helpers.py
-# Description: 
+# Description:
 # This is a collection of helper functions needed for this project.
 #
 ##############################################################################
@@ -50,7 +50,7 @@ def butter_lowpass_filter(data, cutoff, fs, order=5):
 
 def complex_mix(arr, freq_shift, sample_rate, phase=0.0):
     '''
-    inputs: 
+    inputs:
         arr: numpy array of complex samples
         freq_shift: frequency shift in Hz
         sample_rate: sample rate of the samples in arr
@@ -74,28 +74,28 @@ def complex_mix(arr, freq_shift, sample_rate, phase=0.0):
 def rrcosfilter(N, alpha, Ts, Fs):
     """
     Generates a root raised cosine (RRC) filter (FIR) impulse response.
-    
+
     Parameters
     ----------
-    N : int 
+    N : int
         Length of the filter in samples.
-    
+
     alpha: float
         Roll off factor (Valid values are [0, 1]).
-    
+
     Ts : float
         Symbol period in seconds.
-    
-    Fs : float 
+
+    Fs : float
         Sampling Rate in Hz.
-    
+
     Returns
     ---------
     h_rrc : 1-D ndarray of floats
         Impulse response of the root raised cosine filter.
-    
-    time_idx : 1-D ndarray of floats 
-        Array containing the time indices, in seconds, for 
+
+    time_idx : 1-D ndarray of floats
+        Array containing the time indices, in seconds, for
         the impulse response.
     """
     N = int(N)
@@ -103,7 +103,7 @@ def rrcosfilter(N, alpha, Ts, Fs):
     time_idx = ((np.arange(N)-N/2))*T_delta
     sample_num = np.arange(N)
     h_rrc = np.zeros(N, dtype=float)
-        
+
     for x in sample_num:
         t = (x-N/2)*T_delta
         if t == 0.0:
@@ -118,7 +118,7 @@ def rrcosfilter(N, alpha, Ts, Fs):
             h_rrc[x] = (np.sin(np.pi*t*(1-alpha)/Ts) +  \
                     4*alpha*(t/Ts)*np.cos(np.pi*t*(1+alpha)/Ts))/ \
                     (np.pi*t*(1-(4*alpha*t/Ts)*(4*alpha*t/Ts))/Ts)
-        
+
     return time_idx, h_rrc
 
 # Derived from wikipedia: https://en.wikipedia.org/wiki/Fletcher%27s_checksum

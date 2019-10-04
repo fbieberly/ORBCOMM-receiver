@@ -3,19 +3,16 @@
 # Author: Frank Bieberly
 # Date: 30 April 2019
 # Name: file_decoder.py
-# Description: 
+# Description:
 # This script takes in .mat files (produced by record_spectrum_orbcomm.py) and
-# produces multiple plots of the signals spectrum, constellation, timing 
-# recovery, eye diagram, and IQ samples. Additionally, raw decoded bits are 
+# produces multiple plots of the signals spectrum, constellation, timing
+# recovery, eye diagram, and IQ samples. Additionally, raw decoded bits are
 # printed and saved to a file (./packets.txt).
 #
 ##############################################################################
 
-import time
 import glob
-import binascii
 from datetime import datetime, timedelta
-from math import floor, log10
 
 import ephem
 import numpy as np
@@ -66,7 +63,7 @@ lat = data['lat'][0][0]
 lon = data['lon'][0][0]
 alt = data['alt'][0][0]
 
-# PyEphem observer 
+# PyEphem observer
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt # Technically is the altitude of observer
@@ -240,7 +237,7 @@ for idx, sample in enumerate(time_recovery_samples):
     freq_out.append(frequency_out)
 
 # Alternative phase correcting code:
-# PLL code loosely based on liquid dsp simple pll tutorial: 
+# PLL code loosely based on liquid dsp simple pll tutorial:
 # http://liquidsdr.org/blog/pll-simple-howto/
 ## After timing recovery, performing a fine-frequency PLL
 ## First take the signal to the fourth power, then low pass filter
@@ -328,7 +325,7 @@ for xx in range(0, size_of_packets):
             scores[xx] += 1
         if bit_string[yy:yy+8] in packet_headers:
             revscores[xx] += 1
-        
+
 reverse = False
 if np.max(scores) < np.max(revscores):
     reverse = True
@@ -407,11 +404,11 @@ for packet in packets:
                 max_r_sat = 8378155.0
                 val_20_bits = 1048576.0
 
-                x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16) 
+                x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
                 x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
-                y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16) 
+                y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16)
                 y_ecef = ((2*y_temp*max_r_sat)/val_20_bits - max_r_sat)
-                z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16) 
+                z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
                 z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)

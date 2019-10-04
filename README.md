@@ -27,7 +27,7 @@ I use:
 [PyEphem] is used to calculate Az/El and doppler shift of the satellites.  
 [Matplotlib] is used for plotting data.
 
-pip install pyrtlsdr, numpy, scipy, pyephem
+pip install pyrtlsdr, numpy, scipy, pyephem, matplotlib
 
 
 

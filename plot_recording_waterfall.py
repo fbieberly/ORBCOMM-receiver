@@ -1,18 +1,15 @@
-#    This file is part of pyrlsdr.
-#    Copyright (C) 2013 by Roger <https://github.com/roger-/pyrtlsdr>
+##############################################################################
 #
-#    pyrlsdr is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    pyrlsdr is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+# Author: Frank Bieberly
+# Date: 30 April 2019
+# Name: plot_recording_waterfall.py
+# Description:
+# This script takes in .mat files (produced by record_spectrum_orbcomm.py) and
+# produces a plot of the spectrum over time. This can be useful to find the
+# doppler shift of the satellite transmissions. Also, it can help notice
+# interference that may be causing problems with reception.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with pyrlsdr.  If not, see <http://www.gnu.org/licenses/>.
+##############################################################################
 
 import time
 import glob
@@ -44,7 +41,7 @@ for filename in sample_files:
 
 fig, ax = plt.subplots()
 ax.ticklabel_format(useOffset=False, style='plain')
-plt.imshow(waterfall_data, aspect='auto', 
+plt.imshow(waterfall_data, aspect='auto',
        animated=True, interpolation=None,extent=[min(f),max(f),0, 100])
 # plt.xlim([sat_dict[sat_name]['frequency']/1e6 - 0.02, sat_dict[sat_name]['frequency']/1e6 + 0.02])
 plt.colorbar()

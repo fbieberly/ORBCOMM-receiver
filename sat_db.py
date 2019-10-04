@@ -3,10 +3,10 @@
 # Author: Frank Bieberly
 # Date: 17 July 2019
 # Name: sat_db.py
-# Description: 
+# Description:
 # This is a list of the orbcomm satellites that I'm pretty sure are still
-# transmitting.
-# 
+# transmitting. This file is used to schedule recordings for the satellites.
+#
 #
 ##############################################################################
 
@@ -15,10 +15,10 @@ active_orbcomm_satellites = {
             # No signal in several passes:
                 # FM08, FM09, FM06, FM07, FM04, FM05, FM02, FM03, FM01, FM19,
                 # FM18, FM11, FM10, FM12, FM13, FM15, FM14, FM17, FM16, FM20,
-                # FM21, FM22, FM23, FM24, FM25, FM26, FM28, FM32, FM31, FM30, 
-                # FM35, 
+                # FM21, FM22, FM23, FM24, FM25, FM26, FM28, FM32, FM31, FM30,
+                # FM35,
 
-            # Not enough info to know: 
+            # Not enough info to know:
                 # FM104, FM107, FM106, FM105, FM27, FM29, FM33, FM37, FM36, FM34,
                 # FM111, FM119, FM115
             'orbcomm fm103':{

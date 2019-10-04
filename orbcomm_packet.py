@@ -14,26 +14,26 @@ packet_dict = {
                             'header':'01100101',
                             'hex_header':'65',
                             'message_parts':[
-                                            ('Code', (0, 6)),  # Part name, (start idx, stop idx)
-                                            ('Sat ID', (6, 8)),  
+                                            ('code', (0, 6)),  # Part name, (start idx, stop idx)
+                                            ('sat_id', (6, 8)),  
                                             ],
                             },
                     'Message':{
                             'header':'00011010',
                             'hex_header':'1A',
                             'message_parts':[
-                                            ('Part', (3, 4)),
-                                            ('Total length', (2, 3)),
-                                            ('Data', (4, 22)),
+                                            ('msg_packet_num', (3, 4)),
+                                            ('msg_total_length', (2, 3)),
+                                            ('data', (4, 22)),
                                             ],
                             },
                     'Uplink_info':{
                             'header':'00011011',
                             'hex_header':'1B',
                             'message_parts':[
-                                            ('Total length', (2, 3)),
-                                            ('Part', (3, 4)),
-                                            ('Data', (4, 22)),
+                                            ('msg_packet_num', (3, 4)),
+                                            ('msg_total_length', (2, 3)),
+                                            ('data', (4, 22)),
                                             ],
 
                             },
@@ -41,9 +41,9 @@ packet_dict = {
                             'header':'00011100',
                             'hex_header':'1C',
                             'message_parts':[
-                                            ('Total length', (2, 3)),
-                                            ('Part', (3, 4)),
-                                            ('Data', (4, 22)),
+                                            ('msg_packet_num', (3, 4)),
+                                            ('msg_total_length', (2, 3)),
+                                            ('data', (4, 22)),
                                             ],
 
                             },
@@ -51,16 +51,16 @@ packet_dict = {
                             'header':'00011101',
                             'hex_header':'1D',
                             'message_parts':[
-                                            ('Total length', (2, 3)),
-                                            ('Part', (3, 4)),
-                                            ('Data', (4, 22)),
+                                            ('msg_packet_num', (3, 4)),
+                                            ('msg_total_length', (2, 3)),
+                                            ('data', (4, 22)),
                                             ],
 
                             },
                     'Fill':{
                             'header':'00011110',
                             'hex_header':'1E',
-                            'message_parts':[ ('Data', (2, 22)),
+                            'message_parts':[ ('data', (2, 22)),
                                             ],
 
                             },
@@ -68,8 +68,8 @@ packet_dict = {
                             'header':'00011111',
                             'hex_header':'1F',
                             'message_parts':[
-                                            ('Sat ID', (2, 4)),  
-                                            ('Data', (4, 48)),  
+                                            ('sat_id', (2, 4)),  
+                                            ('data', (4, 48)),  
                                             ],
 
                             },

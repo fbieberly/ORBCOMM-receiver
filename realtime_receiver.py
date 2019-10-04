@@ -21,7 +21,7 @@
 import matplotlib
 qt_backend_found = False
 
-for backend in ['Qt4Agg', 'Qt5Agg']:
+for backend in ['Qt5Agg', 'Qt4Agg']:
     try:
         matplotlib.use(backend)
         qt_backend_found = True
@@ -32,8 +32,12 @@ if qt_backend_found == False:
     print("Qt plotting backend for matplotlib required. Exiting.")
     exit()
 
+try:
+    # For python2.7
+    import cPickle as pickle
+except:
+    pass
 import signal
-import cPickle as pickle
 from time import time, sleep
 import multiprocessing as mp
 from math import degrees, log10
@@ -47,9 +51,8 @@ from rtlsdr import RtlSdr
 from scipy.signal import welch
 import matplotlib.pyplot as plt
 
-
 from helpers import get_tle_lines
-from realtime_decoder_new import RealtimeDecoder
+from realtime_decoder import RealtimeDecoder
 from sat_db import active_orbcomm_satellites
 
 from CONFIG import *
@@ -58,7 +61,7 @@ from CONFIG import *
 # using latest TLE data
 for name in active_orbcomm_satellites:
     sat_line0, sat_line1, sat_line2 = get_tle_lines(name, tle_dir='./tles')
-    sat = ephem.readtle(sat_line0, sat_line1, sat_line2)
+    sat = ephem.readtle(str(sat_line0), str(sat_line1), str(sat_line2))
     active_orbcomm_satellites[name]['sat_obj'] = sat
 
 # PyEphem observer
@@ -66,35 +69,6 @@ for name in active_orbcomm_satellites:
 obs = ephem.Observer()
 obs.lat, obs.lon = '{}'.format(lat), '{}'.format(lon)
 obs.elevation = alt
-
-##########################################
-# configure the matplotlib plots
-img = plt.imread("./map.jpg")
-const_fig, ax_arr = plt.subplots(2, 2, num=10)
-
-# Plot of the complex IQ samples
-cost_line, = ax_arr[0,0].plot([0,], 'bx')
-ax_arr[0,0].set_xlim((-2, 2))
-ax_arr[0,0].set_ylim((-2, 2))
-ax_arr[0,0].set_title("Complex I/Q samples")
-ax_arr[0,0].set_xlabel("I")
-ax_arr[0,0].set_ylabel("Q")
-
-# Plot of the channel spectrum
-fft_line, = ax_arr[1,0].plot([0,], 'b')
-ax_arr[1,0].set_xlim((-6e3, 6e3))
-ax_arr[1,0].set_ylim((-50, 20))
-ax_arr[1,0].set_title("Channel Spectrum")
-ax_arr[1,0].set_xlabel("Frequency (centered on channel) Hz")
-ax_arr[1,0].set_ylabel("Power (dB)")
-
-# Plot of globe and ground station location
-img_plot = ax_arr[1,1].imshow(img, extent=[-180, 180, -90, 90])
-loc_plot, = ax_arr[1,1].plot(lon, lat, 'ro')
-
-ax_arr[0,1].axis('off')
-
-##########################################
 
 # speed of light
 c = 299792458.0 # m/s
@@ -133,6 +107,9 @@ def rtlsdr_callback(samples, context):
 
     # This code will catch the case when the user closes the matplotlib figure
     if queue.qsize() > 20:
+        # empty out the queue so that the threads can join without error
+        while queue.qsize() > 0:
+            queue.get()
         should_finish = True
         queue.put((None, None))
         sdr.cancel_read_async()
@@ -155,6 +132,36 @@ def rtlsdr_callback(samples, context):
 def process_samples(queue):
     global decoder
     global should_finish
+
+    ##########################################
+    # configure the matplotlib plots
+    const_fig, ax_arr = plt.subplots(2, 2, num=10)
+
+    # Plot of the complex IQ samples
+    cost_line, = ax_arr[0,0].plot([0,], 'bx')
+    ax_arr[0,0].set_xlim((-2, 2))
+    ax_arr[0,0].set_ylim((-2, 2))
+    ax_arr[0,0].set_title("Complex I/Q samples")
+    ax_arr[0,0].set_xlabel("I")
+    ax_arr[0,0].set_ylabel("Q")
+
+    # Plot of the channel spectrum
+    fft_line, = ax_arr[1,0].plot([0,], 'b')
+    ax_arr[1,0].set_xlim((-6e3, 6e3))
+    ax_arr[1,0].set_ylim((-50, 20))
+    ax_arr[1,0].set_title("Channel Spectrum")
+    ax_arr[1,0].set_xlabel("Frequency (centered on channel) Hz")
+    ax_arr[1,0].set_ylabel("Power (dB)")
+
+    # Plot of globe and ground station location
+    img = plt.imread("./map.jpg")
+    img_plot = ax_arr[1,1].imshow(img, extent=[-180, 180, -90, 90])
+    loc_plot, = ax_arr[1,1].plot(lon, lat, 'ro')
+
+    ax_arr[0,1].axis('off')
+    plt.pause(0.0001)
+    ##########################################
+
     tic = time()
 
     sat_gps_dict = {}
@@ -296,9 +303,6 @@ while 1:
             sat.compute(obs)
             relative_vel = sat.range_velocity
             doppler = c/(c+relative_vel) * sat_center_frequency - sat_center_frequency
-
-            # Open matplotlib figure for plotting:
-            plt.pause(0.0001)
 
             print('Recording samples.')
             # Record samples twice just to fill up buffers (not sure if needed)

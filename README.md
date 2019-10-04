@@ -21,9 +21,11 @@ http://f6cte.free.fr/index_anglais.htm
 
 Should work with either Python 2.X or 3.X
 
-I use [pyrtlsdr] to record the RF signal with an RTLSDR receiver.
-[NumPy] and [SciPy] are used for signal processing.
-[PyEphem] is used to calculate Az/El and doppler shift of the satellites.
+I use:  
+[pyrtlsdr] to record the RF signal with an RTLSDR receiver.  
+[NumPy] and [SciPy] are used for signal processing.  
+[PyEphem] is used to calculate Az/El and doppler shift of the satellites.  
+[Matplotlib] is used for plotting data.
 
 pip install pyrtlsdr, numpy, scipy, pyephem
 
@@ -33,6 +35,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 [NumPy]: https://www.numpy.org/
 [SciPy]: https://www.scipy.org/
 [pyrtlsdr]: https://github.com/roger-/pyrtlsdr
+[Matplotlib]: https://matplotlib.org/
 
 ## Getting started
 
@@ -41,7 +44,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Record IQ data by running _record_orbcomm.py_
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
-  a. The file it decodes is selected near the top of the file. Change it there if you wish to decode other files.
+    a. The file it decodes is selected near the top of the file. Change it there if you wish to decode other files.
 
 ```
 EXAMPLE OUTPUT
@@ -97,9 +100,9 @@ Unrecognized packet: 0A506D28227274970012FF61
 1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the orbcomm satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Run _realtime_receiver.py_
-  a. If there is no satellite overhead it will tell you how long the wait is.
-  b. I recommend you use [gPredict] to know where the ORBCOMM satellites are.
-  c. Note that not all the ORBCOMM satellites still transmit. Look in _sat_db.py_ to see the active ones.
+    a. If there is no satellite overhead it will tell you how long the wait is.
+    b. I recommend you use [gPredict] to know where the ORBCOMM satellites are.
+    c. Note that not all the ORBCOMM satellites still transmit. Look in _sat_db.py_ to see the active ones.
 
 
 [gPredict]: http://gpredict.oz9aec.net/
@@ -133,8 +136,8 @@ Scripts include:
 
 I used these two resources as my primary references.
 
-http://mdkenny.customer.netspace.net.au/Orbcomm.pdf
-http://www.decodesystems.com/orbcomm.html
+http://mdkenny.customer.netspace.net.au/Orbcomm.pdf  
+http://www.decodesystems.com/orbcomm.html  
 
 
 ## Data format

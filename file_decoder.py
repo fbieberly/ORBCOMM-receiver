@@ -6,8 +6,8 @@
 # Description: 
 # This script takes in .mat files (produced by record_spectrum_orbcomm.py) and
 # produces multiple plots of the signals spectrum, constellation, timing 
-# recovery, eye diagram, and IQ samples. Additionally, decoded bits are printed
-# and saved to a file.
+# recovery, eye diagram, and IQ samples. Additionally, raw decoded bits are 
+# printed and saved to a file (./packets.txt).
 #
 ##############################################################################
 
@@ -57,7 +57,7 @@ print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencie
 # Decode the lower channel
 sat_center_frequency = frequencies[0]
 
-# Extract the values for some further processing
+# Extract the values from file for some further processing
 samples = data['samples'][0]
 center_freq = data['fc'][0][0]
 sample_rate = data['fs'][0][0]
@@ -225,8 +225,6 @@ for xx in range(num_plots):
 plt.grid()
 plt.tight_layout()
 
-
-
 # Costas loop
 phase_est = np.zeros(len(time_recovery_samples)+1)
 alpha = 0.03
@@ -240,7 +238,6 @@ for idx, sample in enumerate(time_recovery_samples):
     frequency_out += beta * phase_error
     phase_est[idx+1] = phase_est[idx] + alpha * phase_error + frequency_out
     freq_out.append(frequency_out)
-
 
 # Alternative phase correcting code:
 # PLL code loosely based on liquid dsp simple pll tutorial: 
@@ -420,7 +417,6 @@ for packet in packets:
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
                 print("\tLat/Lon:       {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
                 print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0))
-                # exit()
             break
     # Unrecognized just means I don't know what these packets are for
     # would also happen if the header is corrupted
@@ -501,7 +497,6 @@ plt.title("Spectrum of signal to 4th power")
 plt.xlabel("Frequency (Hz)")
 plt.ylabel("Magnitude (dB)")
 plt.tight_layout()
-
 
 # Plot complex samples from one channel
 plt.figure()

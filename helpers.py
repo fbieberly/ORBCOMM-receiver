@@ -66,7 +66,7 @@ def complex_mix(arr, freq_shift, sample_rate, phase=0.0):
     t = np.arange(0, duration*2.0, 1.0/sample_rate)[:len(arr)+1] # Need to make sure you have as many of these samples as you have IQ samples. Sometimes I use: t = np.arange(0, duration*2, 1.0/sample_rate)[:len(signal)]
     complex_cos = np.exp( 1j * 2*np.pi * freq_shift * t[:-1] + phase, dtype=np.complex64)
     shifted_signal = arr * complex_cos
-    ret_phase = (1j * 2*np.pi * freq_shift * t[-1] + phase)%(2 * np.pi)
+    ret_phase = (1j * 2*np.pi * freq_shift * t[-1] + phase)
     return shifted_signal, ret_phase
 
 

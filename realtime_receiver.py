@@ -87,6 +87,10 @@ sdr.rs = sample_rate
 sdr.gain = gain
 sdr.fc = center_freq
 
+# dictionary/list to hold satellite plots
+sat_gps_dict = {}
+sat_plot_lines = []
+
 # receive samples that are an integer multiple of 1024 from the RTLSDR
 num_samples_per_recording = int(1024*128)
 should_finish = False
@@ -132,6 +136,8 @@ def rtlsdr_callback(samples, context):
 def process_samples(queue):
     global decoder
     global should_finish
+    global sat_gps_dict
+    global sat_plot_lines
 
     ##########################################
     # configure the matplotlib plots
@@ -163,9 +169,6 @@ def process_samples(queue):
     ##########################################
 
     tic = time()
-
-    sat_gps_dict = {}
-    sat_plot_lines = []
 
     while 1:
         try:

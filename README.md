@@ -1,4 +1,4 @@
-# orbcomm_decoder
+# ORBCOMM receiver
 A software receiver for ORBCOMM satellite transmissions.
 
 
@@ -40,7 +40,7 @@ pip install pyrtlsdr, numpy, scipy, pyephem, matplotlib
 ## Getting started
 
 #### Offline recording and decoding
-1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the orbcomm satellites.
+1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the ORBCOMM satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Record IQ data by running _record_orbcomm.py_
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
@@ -97,7 +97,7 @@ Unrecognized packet: 0A506D28227274970012FF61
 
 
 #### Real-time recording and decoding
-1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the orbcomm satellites.
+1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the ORBCOMM satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Run _realtime_receiver.py_
     1. If there is no satellite overhead it will tell you how long the wait is.
@@ -118,12 +118,12 @@ In the dsp_training folder are a number of scripts that I used to help me unders
 
 
 Scripts include:
-- sat_db.py: just a dictionary of orbcomm satellites I know are active
+- sat_db.py: just a dictionary of ORBCOMM satellites I know are active
 - orbcomm_packet.py: a list of all the known ORBCOMM packet types and their components
 - helpers.py: a file with useful helper functions
 - plot_recording_waterfall.py: plots a waterfall of recordings
-- update_orbcomm_tle.py: downloads the latest orbcomm tles from celestrack.com
-- record_orbcomm.py: records orbcomm satellites when they are overhead with an RTLSDR
+- update_orbcomm_tle.py: downloads the latest ORBCOMM tles from celestrack.com
+- record_orbcomm.py: records ORBCOMM satellites when they are overhead with an RTLSDR
 - file_decoder.py: If you have .mat files in the data folder, this script will attempt to decode one
 - realtime_decoder.py: This is a class for doing decoding of a realtime stream of samples
 - realtime_receiver.py: This is a script that does realtime decoding of the ORBCOMM signal, plus some interesting plots

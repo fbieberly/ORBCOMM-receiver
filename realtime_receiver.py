@@ -129,6 +129,8 @@ def rtlsdr_callback(samples, context):
     new_context = {
             'doppler':doppler,
             'sat_name':sat_name,
+            'elevation':degrees(sat.alt),
+            'azimuth':degrees(sat.az)
             }
     queue.put((samples, new_context))
 
@@ -178,6 +180,8 @@ def process_samples(queue):
 
             doppler = context['doppler']
             sat_name = context['sat_name']
+            az = context['azimuth']
+            el = context['elevation']
 
             tic = time()
             packet_list = decoder.decode_samples_to_packets(samples, doppler)
@@ -245,15 +249,19 @@ def process_samples(queue):
             good_percent = decoder.good_packets / (decoder.bad_packets + decoder.good_packets + 0.1)
 
             text0 = ax_arr[0,1].text(0.10, 0.90, "Satellite Name: {}".format(sat_name))
-            text1 = ax_arr[0,1].text(0.10, 0.80, "Bad Packets %:  {:4.1f}".format(bad_percent*100.0))
-            text2 = ax_arr[0,1].text(0.10, 0.70, "Good Packets %: {:4.1f}".format(good_percent*100.0))
-            text3 = ax_arr[0,1].text(0.10, 0.60, "Time ratio:     {:4.2f}".format(time_ratio))
+            text1 = ax_arr[0,1].text(0.10, 0.80, "Lat/Lon: {:6.3f} {:6.3f}".format(decoder.sat_lon, decoder.sat_lat))
+            text2 = ax_arr[0,1].text(0.10, 0.70, "Azimuth: {:6.0f}   Elevation: {:6.0f}".format(az, el))
+            text3 = ax_arr[0,1].text(0.10, 0.60, "Bad Packets %:  {:4.1f}".format(bad_percent*100.0))
+            text4 = ax_arr[0,1].text(0.10, 0.50, "Good Packets %: {:4.1f}".format(good_percent*100.0))
+            text5 = ax_arr[0,1].text(0.10, 0.40, "Time ratio:     {:4.2f}".format(time_ratio))
 
             ax_arr[0,1].draw_artist(ax_arr[0,1].patch)
             ax_arr[0,1].draw_artist(text0)
             ax_arr[0,1].draw_artist(text1)
             ax_arr[0,1].draw_artist(text2)
             ax_arr[0,1].draw_artist(text3)
+            ax_arr[0,1].draw_artist(text4)
+            ax_arr[0,1].draw_artist(text5)
 
             const_fig.canvas.update()
             const_fig.canvas.flush_events()

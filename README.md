@@ -1,19 +1,19 @@
 # ORBCOMM receiver
-A software receiver for ORBCOMM satellite transmissions.
+A software receiver for ORBCOMM satellite transmissions.  
 
-Please read the wiki for more information: https://github.com/fbieberly/ORBCOMM-receiver/wiki
+Please read the wiki for more information: https://github.com/fbieberly/ORBCOMM-receiver/wiki  
 
 ## Description
 
-This is a software receiver for decoding packets from ORBCOMM satellites. For known packet types the packet data is decoded.
+This is a software receiver for decoding packets from ORBCOMM satellites. For known packet types the packet data is decoded.  
 
 I am writing this decoder as an instructional personal project. Hopefully it
 can be used by others to learn about designing satellite communication
-receivers.
+receivers.  
 
-If you want a more full-featured ORBCOMM receiver please check out:
-https://www.coaa.co.uk/orbcommplotter.htm
-http://f6cte.free.fr/index_anglais.htm
+If you want a more full-featured ORBCOMM receiver please check out:  
+https://www.coaa.co.uk/orbcommplotter.htm  
+http://f6cte.free.fr/index_anglais.htm  
 
 
 

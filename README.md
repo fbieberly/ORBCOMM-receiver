@@ -1,7 +1,7 @@
 # ORBCOMM receiver
 A software receiver for ORBCOMM satellite transmissions.
 
-
+Please read the wiki for more information: https://github.com/fbieberly/ORBCOMM-receiver/wiki
 
 ## Description
 

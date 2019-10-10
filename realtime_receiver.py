@@ -110,7 +110,7 @@ def rtlsdr_callback(samples, context):
     doppler = c/(c+relative_vel) * sat_center_frequency - sat_center_frequency
 
     # This code will catch the case when the user closes the matplotlib figure
-    if queue.qsize() > 20:
+    if queue.qsize() > 30:
         # empty out the queue so that the threads can join without error
         while queue.qsize() > 0:
             queue.get()
@@ -221,7 +221,7 @@ def process_samples(queue):
                     sat_lat_lon = (decoder.sat_lon, decoder.sat_lat)
                     if sat_name not in sat_gps_dict:
                         sat_gps_dict[sat_name] = [sat_lat_lon]
-                        sat_plot_lines.append(ax_arr[1,1].plot([0,], 'D-', color='cyan', markevery=[-1])[0])
+                        sat_plot_lines.append(ax_arr[1,1].plot([0,], 'D:', color='cyan', markevery=[-1])[0])
                     else:
                         if sat_lat_lon not in sat_gps_dict[sat_name]:
                             sat_gps_dict[sat_name].append(sat_lat_lon)

@@ -34,7 +34,7 @@ packet_file = r'./packets.txt'
 
 # Where the data files are located
 data_dir = r'./data/'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[-10]
+sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)

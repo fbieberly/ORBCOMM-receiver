@@ -17,20 +17,21 @@
 #
 ##############################################################################
 
+from CONFIG import lat, lon, alt, min_elevation, realtime_plotting
+if realtime_plotting:
+    import matplotlib
+    qt_backend_found = False
 
-import matplotlib
-qt_backend_found = False
-
-for backend in ['Qt5Agg', 'Qt4Agg']:
-    try:
-        matplotlib.use(backend)
-        qt_backend_found = True
-        break
-    except ValueError:
-        pass
-if qt_backend_found == False:
-    print("Qt plotting backend for matplotlib required. Exiting.")
-    exit()
+    for backend in ['Qt5Agg', 'Qt4Agg']:
+        try:
+            matplotlib.use(backend)
+            qt_backend_found = True
+            break
+        except ValueError:
+            pass
+    if qt_backend_found == False:
+        print("Qt plotting backend for matplotlib required. Exiting.")
+        exit()
 
 try:
     # For python2.7
@@ -55,7 +56,6 @@ from helpers import get_tle_lines
 from realtime_decoder import RealtimeDecoder
 from sat_db import active_orbcomm_satellites
 
-from CONFIG import *
 
 # Create a pyephem sat object for all the active satellites
 # using latest TLE data
@@ -95,6 +95,7 @@ sat_plot_lines = []
 num_samples_per_recording = int(1024*128)
 should_finish = False
 
+# This is a callback function for async rtlsdr receive samples
 def rtlsdr_callback(samples, context):
     global decoder
     global should_finish
@@ -104,6 +105,7 @@ def rtlsdr_callback(samples, context):
     sat_name = context['sat_name']
     obs = context['observer']
 
+    # Calculate the doppler shift for the satellite
     obs.date = ephem.now()
     sat.compute(obs)
     relative_vel = sat.range_velocity
@@ -135,6 +137,8 @@ def rtlsdr_callback(samples, context):
     queue.put((samples, new_context))
 
 
+# This function runs in a separate process
+# It collects samples from a queue, processes them and plots the results
 def process_samples(queue):
     global decoder
     global should_finish
@@ -143,31 +147,33 @@ def process_samples(queue):
 
     ##########################################
     # configure the matplotlib plots
-    const_fig, ax_arr = plt.subplots(2, 2, num=10)
+    if realtime_plotting:
+        # Create a figure with 4 subplots
+        const_fig, ax_arr = plt.subplots(2, 2, num=10)
 
-    # Plot of the complex IQ samples
-    cost_line, = ax_arr[0,0].plot([0,], 'bx')
-    ax_arr[0,0].set_xlim((-2, 2))
-    ax_arr[0,0].set_ylim((-2, 2))
-    ax_arr[0,0].set_title("Complex I/Q samples")
-    ax_arr[0,0].set_xlabel("I")
-    ax_arr[0,0].set_ylabel("Q")
+        # Plot of the complex IQ samples
+        cost_line, = ax_arr[0,0].plot([0,], 'bx')
+        ax_arr[0,0].set_xlim((-2, 2))
+        ax_arr[0,0].set_ylim((-2, 2))
+        ax_arr[0,0].set_title("Complex I/Q samples")
+        ax_arr[0,0].set_xlabel("I")
+        ax_arr[0,0].set_ylabel("Q")
 
-    # Plot of the channel spectrum
-    fft_line, = ax_arr[1,0].plot([0,], 'b')
-    ax_arr[1,0].set_xlim((-6e3, 6e3))
-    ax_arr[1,0].set_ylim((-50, 20))
-    ax_arr[1,0].set_title("Channel Spectrum")
-    ax_arr[1,0].set_xlabel("Frequency (centered on channel) Hz")
-    ax_arr[1,0].set_ylabel("Power (dB)")
+        # Plot of the channel spectrum
+        fft_line, = ax_arr[1,0].plot([0,], 'b')
+        ax_arr[1,0].set_xlim((-6e3, 6e3))
+        ax_arr[1,0].set_ylim((-50, 20))
+        ax_arr[1,0].set_title("Channel Spectrum")
+        ax_arr[1,0].set_xlabel("Frequency (centered on channel) Hz")
+        ax_arr[1,0].set_ylabel("Power (dB)")
 
-    # Plot of globe and ground station location
-    img = plt.imread("./map.jpg")
-    img_plot = ax_arr[1,1].imshow(img, extent=[-180, 180, -90, 90])
-    loc_plot, = ax_arr[1,1].plot(lon, lat, 'ro')
+        # Plot of globe and ground station location
+        img = plt.imread("./map.jpg")
+        img_plot = ax_arr[1,1].imshow(img, extent=[-180, 180, -90, 90])
+        loc_plot, = ax_arr[1,1].plot(lon, lat, 'ro')
 
-    ax_arr[0,1].axis('off')
-    plt.pause(0.0001)
+        ax_arr[0,1].axis('off')
+        plt.pause(0.0001)
     ##########################################
 
     tic = time()
@@ -189,89 +195,94 @@ def process_samples(queue):
             #     do saving stuff
             decoder.parse_packets()
 
-            # Get the welch spectrum for just the channel we are decoding
-            f, pxx = welch(decoder.decimated_samples, fs=decoder.sample_rate/decoder.decimation, \
-                           return_onesided=False, nperseg= int(len(decoder.decimated_samples)/10), \
-                           scaling='density')
-            f = (np.roll(f, int(len(f)/2)))
-            pxx = np.roll(pxx, int(len(pxx)/2))
-            pxx = 20*np.log10(pxx)
-            pxx -= np.median(pxx)
+            if realtime_plotting:
+                if len(decoder.decimated_samples) == 0:
+                    # This happens when the receiver resets
+                    continue
 
-            symbols = decoder.symbols
-            symbols /= np.median(np.abs(symbols))
+                # Get the welch spectrum for just the channel we are decoding
+                f, pxx = welch(decoder.decimated_samples, fs=decoder.sample_rate/decoder.decimation, \
+                               return_onesided=False, nperseg= int(len(decoder.decimated_samples)/10), \
+                               scaling='density')
+                f = (np.roll(f, int(len(f)/2)))
+                pxx = np.roll(pxx, int(len(pxx)/2))
+                pxx = 20*np.log10(pxx)
+                pxx -= np.median(pxx)
 
-            # plot IQ samples
-            cost_line.set_xdata(symbols.real)
-            cost_line.set_ydata(symbols.imag)
-            ax_arr[0,0].draw_artist(ax_arr[0,0].patch)
-            ax_arr[0,0].draw_artist(cost_line)
+                symbols = decoder.symbols
+                symbols /= np.median(np.abs(symbols))
 
-            # plot spectrum
-            fft_line.set_xdata(f)
-            fft_line.set_ydata(pxx)
-            ax_arr[1,0].draw_artist(ax_arr[1,0].patch)
-            ax_arr[1,0].draw_artist(fft_line)
+                # plot IQ samples
+                cost_line.set_xdata(symbols.real)
+                cost_line.set_ydata(symbols.imag)
+                ax_arr[0,0].draw_artist(ax_arr[0,0].patch)
+                ax_arr[0,0].draw_artist(cost_line)
 
-            # Check if we have new lat/long for satellite
-            # If we do, plot the track of the satellite since we've been recording
-            # This track is from received lat/long (not from TLE position)
-            if decoder.sat_lon != 0.0 and decoder.sat_lat != 0.0:
-                if abs(decoder.sat_lon) < 180 and abs(decoder.sat_lat) < 90:
-                    sat_lat_lon = (decoder.sat_lon, decoder.sat_lat)
-                    if sat_name not in sat_gps_dict:
-                        sat_gps_dict[sat_name] = [sat_lat_lon]
-                        sat_plot_lines.append(ax_arr[1,1].plot([0,], 'D:', color='cyan', markevery=[-1])[0])
-                    else:
-                        if sat_lat_lon not in sat_gps_dict[sat_name]:
-                            sat_gps_dict[sat_name].append(sat_lat_lon)
+                # plot spectrum
+                fft_line.set_xdata(f)
+                fft_line.set_ydata(pxx)
+                ax_arr[1,0].draw_artist(ax_arr[1,0].patch)
+                ax_arr[1,0].draw_artist(fft_line)
 
-                    # Only update the plot when we get a new lat/long
-                    ax_arr[1,1].draw_artist(ax_arr[1,1].patch)
-                    ax_arr[1,1].draw_artist(img_plot)
-                    ax_arr[1,1].draw_artist(loc_plot)
-                    for idx, key in enumerate(sat_gps_dict):
-                        lon_lat_arr = sat_gps_dict[key]
-                        lons, lats = zip(*lon_lat_arr)
-                        sat_plot_lines[idx].set_xdata(lons)
-                        sat_plot_lines[idx].set_ydata(lats)
-                        text = ax_arr[1,1].text(lons[-1], lats[-1], "{}".format(key), color='cyan', wrap=True)
-                        ax_arr[1,1].draw_artist(sat_plot_lines[idx])
-                        ax_arr[1,1].draw_artist(text)
+                # Check if we have new lat/long for satellite
+                # If we do, plot the track of the satellite since we've been recording
+                # This track is from received lat/long (not from TLE position)
+                if decoder.sat_lon != 0.0 and decoder.sat_lat != 0.0:
+                    if abs(decoder.sat_lon) < 180 and abs(decoder.sat_lat) < 90:
+                        sat_lat_lon = (decoder.sat_lon, decoder.sat_lat)
+                        if sat_name not in sat_gps_dict:
+                            sat_gps_dict[sat_name] = [sat_lat_lon]
+                            sat_plot_lines.append(ax_arr[1,1].plot([0,], 'D:', color='cyan', markevery=[-1])[0])
+                        else:
+                            if sat_lat_lon not in sat_gps_dict[sat_name]:
+                                sat_gps_dict[sat_name].append(sat_lat_lon)
 
-            toc = time()
-            # The time ratio is the amount of time it takes to process a batch of samples
-            # divided by the time that it takes to record the samples.
-            # A time ratio over 1.0 means that you are falling behind.
-            time_ratio = sdr.sample_rate/len(samples) * (toc-tic)
+                        # Only update the plot when we get a new lat/long
+                        ax_arr[1,1].draw_artist(ax_arr[1,1].patch)
+                        ax_arr[1,1].draw_artist(img_plot)
+                        ax_arr[1,1].draw_artist(loc_plot)
+                        for idx, key in enumerate(sat_gps_dict):
+                            lon_lat_arr = sat_gps_dict[key]
+                            lons, lats = zip(*lon_lat_arr)
+                            sat_plot_lines[idx].set_xdata(lons)
+                            sat_plot_lines[idx].set_ydata(lats)
+                            text = ax_arr[1,1].text(lons[-1], lats[-1], "{}".format(key), color='cyan', wrap=True)
+                            ax_arr[1,1].draw_artist(sat_plot_lines[idx])
+                            ax_arr[1,1].draw_artist(text)
 
-            bad_percent = decoder.bad_packets / (decoder.bad_packets + decoder.good_packets + 0.1)
-            good_percent = decoder.good_packets / (decoder.bad_packets + decoder.good_packets + 0.1)
+                toc = time()
+                # The time ratio is the amount of time it takes to process a batch of samples
+                # divided by the time that it takes to record the samples.
+                # A time ratio over 1.0 means that you are falling behind.
+                time_ratio = sdr.sample_rate/len(samples) * (toc-tic)
 
-            text0 = ax_arr[0,1].text(0.10, 0.90, "Satellite Name: {}".format(sat_name))
-            text1 = ax_arr[0,1].text(0.10, 0.80, "Lat/Lon: {:6.3f} {:6.3f}".format(decoder.sat_lon, decoder.sat_lat))
-            text2 = ax_arr[0,1].text(0.10, 0.70, "Azimuth: {:6.0f}   Elevation: {:6.0f}".format(az, el))
-            text3 = ax_arr[0,1].text(0.10, 0.60, "Bad Packets %:  {:4.1f}".format(bad_percent*100.0))
-            text4 = ax_arr[0,1].text(0.10, 0.50, "Good Packets %: {:4.1f}".format(good_percent*100.0))
-            text5 = ax_arr[0,1].text(0.10, 0.40, "Time ratio:     {:4.2f}".format(time_ratio))
+                bad_percent = decoder.bad_packets / (decoder.bad_packets + decoder.good_packets + 0.1)
+                good_percent = decoder.good_packets / (decoder.bad_packets + decoder.good_packets + 0.1)
 
-            ax_arr[0,1].draw_artist(ax_arr[0,1].patch)
-            ax_arr[0,1].draw_artist(text0)
-            ax_arr[0,1].draw_artist(text1)
-            ax_arr[0,1].draw_artist(text2)
-            ax_arr[0,1].draw_artist(text3)
-            ax_arr[0,1].draw_artist(text4)
-            ax_arr[0,1].draw_artist(text5)
+                text0 = ax_arr[0,1].text(0.10, 0.90, "Satellite Name: {}".format(sat_name))
+                text1 = ax_arr[0,1].text(0.10, 0.80, "Lat/Lon: {:6.3f} {:6.3f}".format(decoder.sat_lon, decoder.sat_lat))
+                text2 = ax_arr[0,1].text(0.10, 0.70, "Azimuth: {:6.0f}   Elevation: {:6.0f}".format(az, el))
+                text3 = ax_arr[0,1].text(0.10, 0.60, "Bad Packets %:  {:4.1f}".format(bad_percent*100.0))
+                text4 = ax_arr[0,1].text(0.10, 0.50, "Good Packets %: {:4.1f}".format(good_percent*100.0))
+                text5 = ax_arr[0,1].text(0.10, 0.40, "Time ratio:     {:4.2f}".format(time_ratio))
 
-            const_fig.canvas.update()
-            const_fig.canvas.flush_events()
+                ax_arr[0,1].draw_artist(ax_arr[0,1].patch)
+                ax_arr[0,1].draw_artist(text0)
+                ax_arr[0,1].draw_artist(text1)
+                ax_arr[0,1].draw_artist(text2)
+                ax_arr[0,1].draw_artist(text3)
+                ax_arr[0,1].draw_artist(text4)
+                ax_arr[0,1].draw_artist(text5)
 
-            # If the user closes the figure, fignums goes to 0
-            # Then we'll close this process and exit the program
-            fignums = plt.get_fignums()
-            if len(fignums) == 0:
-                should_finish = True
-                break
+                const_fig.canvas.update()
+                const_fig.canvas.flush_events()
+
+                # If the user closes the figure, fignums goes to 0
+                # Then we'll close this process and exit the program
+                fignums = plt.get_fignums()
+                if len(fignums) == 0:
+                    should_finish = True
+                    break
 
         # Catch ctrl+c and exit program
         except KeyboardInterrupt:
@@ -303,6 +314,7 @@ while 1:
 
             sat_name = sorted_sats[0][0]
             sat = sorted_sats[0][1]
+            print("Receiving from: {}".format(sat_name))
             frequencies = active_orbcomm_satellites[sorted_sats[0][0]]['frequencies']
             print("Satellite frequencies: {}".format(frequencies))
             # Decode the lower of the two channels

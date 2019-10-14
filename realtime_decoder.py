@@ -253,9 +253,12 @@ class RealtimeDecoder():
             if angle > 0: bit = 1
             bits[xx] = bit
 
-        if len(angles) > 0:
-            self.ave_angles_above_zero = np.mean(angles[np.where(angles > 0)])
-            self.ave_angles_below_zero = np.mean(angles[np.where(angles < 0)])
+        pos_angles = angles[np.where(angles > 0)]
+        neg_angles = angles[np.where(angles < 0)]
+        if len(pos_angles) > 0:
+            self.ave_angles_above_zero = np.mean(pos_angles)
+        if len(neg_angles) > 0:
+            self.ave_angles_below_zero = np.mean(neg_angles)
 
         self.last_symbol = demod_symbols[-1]
         self.bit_string += ''.join([str(int(bit)) for bit in bits])

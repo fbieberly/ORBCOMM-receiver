@@ -56,7 +56,6 @@ from helpers import get_tle_lines
 from realtime_decoder import RealtimeDecoder
 from sat_db import active_orbcomm_satellites
 
-
 # Create a pyephem sat object for all the active satellites
 # using latest TLE data
 for name in active_orbcomm_satellites:
@@ -94,6 +93,7 @@ sat_plot_lines = []
 # receive samples that are an integer multiple of 1024 from the RTLSDR
 num_samples_per_recording = int(1024*128)
 should_finish = False
+queue_max_size = 30
 
 # This is a callback function for async rtlsdr receive samples
 def rtlsdr_callback(samples, context):
@@ -112,9 +112,9 @@ def rtlsdr_callback(samples, context):
     doppler = c/(c+relative_vel) * sat_center_frequency - sat_center_frequency
 
     # This code will catch the case when the user closes the matplotlib figure
-    if queue.qsize() > 30:
+    if queue.full():
         # empty out the queue so that the threads can join without error
-        while queue.qsize() > 0:
+        while not queue.empty():
             queue.get()
         should_finish = True
         queue.put((None, None))
@@ -333,7 +333,7 @@ while 1:
             samples = sdr.read_samples(num_samples_per_recording)
 
             print("Create multiprocessing queue")
-            queue = mp.Queue()
+            queue = mp.Queue(queue_max_size)
 
             print("Creating multiprocessing process")
             p = mp.Process(target=process_samples, args=(queue,))

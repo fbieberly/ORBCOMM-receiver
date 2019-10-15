@@ -44,7 +44,8 @@ pip install pyrtlsdr, numpy, scipy, pyephem, matplotlib
 2. Update latitude and longitude of your receiver in _CONFIG.py_
 3. Record IQ data by running _record_orbcomm.py_
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
-    1. The file it decodes is selected near the top of the file. Change it there if you wish to decode other files.
+    1. The file it decodes is selected near the top of the file (Line 37). Change it there if you wish to decode other files.
+    1. Note: There are 2 data files that come with this repo. If you want to process your own recordings, you'll need to remove those files (or just point the file_decoder.py script to your files).
 
 ```
 EXAMPLE OUTPUT

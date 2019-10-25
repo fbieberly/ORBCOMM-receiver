@@ -114,7 +114,7 @@ def rtlsdr_callback(samples, context):
     # This code will catch the case when the user closes the matplotlib figure
     if queue.full():
         # empty out the queue so that the threads can join without error
-        while not queue.empty():
+        while queue.qsize() > 0:
             queue.get()
         should_finish = True
         queue.put((None, None))

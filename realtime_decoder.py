@@ -373,7 +373,7 @@ class RealtimeDecoder():
                         payload = ''.join([packet[xx:xx+2] for xx in range(42, 2, -2)])
 
                         # calculate current satellite time
-                        start_date = datetime.strptime('Jan 06 1980 00:00', '%b %d %Y %H:%M')
+                        start_date = datetime(year=1980, month=1, day=6, hour=0, minute=0)
                         week_number = payload[:4]
                         time_of_week = payload[4:10]
                         this_week = start_date + timedelta(weeks=int(week_number, 16))
@@ -447,7 +447,7 @@ class RealtimeDecoder():
                         payload = ''.join([packet[xx:xx+2] for xx in range(42, 2, -2)])
 
                         # calculate current satellite time
-                        start_date = datetime.strptime('Jan 6 1980 00:00', '%b %d %Y %H:%M')
+                        start_date = datetime(year=1980, month=1, day=6, hour=0, minute=0)
                         week_number = payload[:4]
                         time_of_week = payload[4:10]
                         this_week = start_date + timedelta(weeks=int(week_number, 16))

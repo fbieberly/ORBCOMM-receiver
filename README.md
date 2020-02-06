@@ -1,7 +1,9 @@
 # ORBCOMM receiver
 A software receiver for ORBCOMM satellite transmissions.  
 
-Please read the wiki for more information: https://github.com/fbieberly/ORBCOMM-receiver/wiki  
+Please read the [wiki] for more information.
+
+[wiki]: https://github.com/fbieberly/ORBCOMM-receiver/wiki  
 
 ## Description
 
@@ -42,7 +44,10 @@ pip install pyrtlsdr numpy scipy pyephem matplotlib
 #### Offline recording and decoding
 1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the ORBCOMM satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
+    1. Should be in the format: ```lat, lon = 40.919295, -74.087683```
 3. Record IQ data by running _record_orbcomm.py_
+    1. Alternatively, use the _record_orbcomm_long.py_ script which will produce a longer recording that has been decimated to save storage space.
+    1. The longest recording that _record_orbcomm.py_ can make is about 3 seconds, _record_orbcomm_long.py_ can make recordings that are ~100 seconds long.
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
     1. The file it decodes is selected near the top of the file (Line 37). Change it there if you wish to decode other files.
     1. Note: There are 2 data files that come with this repo. If you want to process your own recordings, you'll need to remove those files (or just point the file_decoder.py script to your files).
@@ -100,6 +105,7 @@ Unrecognized packet: 0A506D28227274970012FF61
 #### Real-time recording and decoding
 1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the ORBCOMM satellites.
 2. Update latitude and longitude of your receiver in _CONFIG.py_
+    1. Should be in the format: ```lat, lon = 40.919295, -74.087683```
 3. Run _realtime_receiver.py_
     1. If there is no satellite overhead it will tell you how long the wait is.
     1. I recommend you use [gPredict] to know where the ORBCOMM satellites are.
@@ -119,15 +125,16 @@ In the dsp_training folder are a number of scripts that I used to help me unders
 
 
 Scripts include:
-- sat_db.py: just a dictionary of ORBCOMM satellites I know are active
-- orbcomm_packet.py: a list of all the known ORBCOMM packet types and their components
-- helpers.py: a file with useful helper functions
-- plot_recording_waterfall.py: plots a waterfall of recordings
-- update_orbcomm_tle.py: downloads the latest ORBCOMM tles from celestrack.com
-- record_orbcomm.py: records ORBCOMM satellites when they are overhead with an RTLSDR
-- file_decoder.py: If you have .mat files in the data folder, this script will attempt to decode one
-- realtime_decoder.py: This is a class for doing decoding of a realtime stream of samples
-- realtime_receiver.py: This is a script that does realtime decoding of the ORBCOMM signal, plus some interesting plots
+- _sat_db.py_: just a dictionary of ORBCOMM satellites I know are active
+- _orbcomm_packet.py_: a list of all the known ORBCOMM packet types and their components
+- _helpers.py_: a file with useful helper functions
+- _plot_recording_waterfall.py_: plots a waterfall of recordings
+- _update_orbcomm_tle.py_: downloads the latest ORBCOMM tles from celestrack.com
+- _record_orbcomm.py_: records ORBCOMM satellites when they are overhead with an RTLSDR
+- record_orbcomm_long.py: same as record_orbcomm.py, but it decimates the signal so that it can make much longer recordings (only records one orbcomm channel at a time).
+- _file_decoder.py_: If you have .mat files in the data folder, this script will attempt to decode one
+- _realtime_decoder.py_: This is a class for doing decoding of a realtime stream of samples
+- _realtime_receiver.py_: This is a script that does realtime decoding of the ORBCOMM signal, plus some interesting plots
 
 
 

@@ -29,12 +29,15 @@ from helpers import fletcher_checksum, ecef_to_lla
 # speed of light
 c = 299792458.0 # m/s
 
+# Perform brute force error correction
+brute_force_1bit_error_correction = True
+
 # Where to save decoded packets
 packet_file = r'./packets.txt'
 
 # Where the data files are located
 data_dir = r'./data/'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
+sample_file = sorted(glob.glob(data_dir + "*.mat"))[-4]
 
 # Load the .mat file and print some of the metadata
 data = loadmat(sample_file)
@@ -51,9 +54,6 @@ for sat_name in data['sats']:
     frequencies.append(freq2)
 print("Satellite frequencies: {}".format(', '.join([str(xx) for xx in frequencies])))
 
-# Decode the lower channel
-sat_center_frequency = frequencies[0]
-
 # Extract the values from file for some further processing
 samples = data['samples'][0]
 center_freq = data['fc'][0][0]
@@ -62,6 +62,21 @@ timestamp = data['timestamp'][0][0]
 lat = data['lat'][0][0]
 lon = data['lon'][0][0]
 alt = data['alt'][0][0]
+print("Number of samples: {}".format(len(samples)))
+
+# Check which satellite frequency is contained in the recording
+# If both frequencies are present, decode the lower one.
+sat_center_frequency = 0
+for freq in frequencies:
+    if freq > (center_freq - sample_rate/2.0) and freq < (center_freq + sample_rate/2.0):
+        sat_center_frequency = freq
+        break
+if sat_center_frequency == 0:
+    print("Satellite channel frequencies are not in the recorded spectrum.")
+    exit()
+# To force decoding the upper frequency uncomment this line
+# sat_center_frequency = frequencies[1]
+
 
 # PyEphem observer
 obs = ephem.Observer()
@@ -85,26 +100,44 @@ doppler = c/(c+relative_vel) * sat_center_frequency - sat_center_frequency
 # Mix the samples to baseband (compensating for doppler shift)
 # There will be a residual carrier error because of the RLTSDR frequency offset
 freq_shift = center_freq - sat_center_frequency - doppler
-mixed_down_samples, _ = complex_mix(samples, freq_shift, sample_rate)
+mixed_down_samples, _ = complex_mix(samples,
+                                    freq_shift,
+                                    sample_rate)
 
-# Low pass filter the signal
 filter_freq = 10e3
-filtered_samples = butter_lowpass_filter(mixed_down_samples, filter_freq, sample_rate, order=5)
-
-# Decimated signal
 baud_rate = 4800.0
 samples_per_symbol = 2  # We should only need 2 samples per symbol
-decimation = int(sample_rate/(samples_per_symbol*baud_rate))
-decimated_samples = filtered_samples[::decimation]
+
+if sample_rate == 1.2288e6:
+    # Low pass filter the signal
+    filtered_samples = butter_lowpass_filter(mixed_down_samples, filter_freq, sample_rate, order=5)
+
+    # Decimated signal
+    decimation = int(sample_rate/(samples_per_symbol*baud_rate))
+    decimated_samples = filtered_samples[::decimation]
+
+elif sample_rate == 19200.0:
+    print("Single channel recording detected.")
+    filter_freq = 4e3
+    filtered_samples = butter_lowpass_filter(mixed_down_samples, filter_freq, sample_rate, order=2)
+
+    decimation = 2
+    decimated_samples = filtered_samples[::decimation]
+    filtered_samples = filtered_samples
+
 
 # estimate remaining carrier error (RTLSDR frequency error)
 # signal to the fourth power, take the fft, peak is at frequency offset
 rbw = 1
 nperseg = int(sample_rate/decimation/rbw)
-# take first half of the samples to the 4th power.
-signal_to_4th_power = np.power(decimated_samples[:int(len(decimated_samples)/2.0):], 4)
-f, pxx = scisig.welch(signal_to_4th_power, fs=sample_rate/decimation, \
-                      return_onesided=False, nperseg=nperseg, scaling='density')
+
+# take first min(50e3, len(samples)) of the samples to the 4th power.
+signal_to_4th_power = np.power(decimated_samples[:int(min(len(decimated_samples), 50e3)):], 4)
+f, pxx = scisig.welch(signal_to_4th_power,
+                      fs=sample_rate/decimation,
+                      return_onesided=False,
+                      nperseg=nperseg,
+                      scaling='density')
 f = (np.roll(f, int(len(f)/2)))
 pxx = np.roll(pxx, int(len(pxx)/2))
 search_window = int(1000. / ((sample_rate/decimation)/nperseg))  # search +/- 1 kHz around fc
@@ -141,10 +174,26 @@ tau_vect = np.zeros(len(matched_filtered_samples))
 timing_error = np.zeros(len(matched_filtered_samples))
 err = 0.0
 
-for i in range(1, len(matched_filtered_samples)):
+# Timing recovery
+i = 1
+i_offset = 0
+while i < len(time_recovery_samples) - 1 and i - i_offset + 2 < len(matched_filtered_samples):
     # push sample into interpolating filter
-    buf[:-1] = buf[1:]
-    buf[-1] = matched_filtered_samples[i]
+    # If the time offset exceeds one sample in either direction
+    if tau > 1.0:
+        # Use the samples from last time
+        i_offset += 1
+        tau += -1
+    elif tau < -1.0:
+        # Push two samples into the buffer
+        buf[:-2] = buf[2:]
+        buf[-2:] = matched_filtered_samples[int(i - i_offset):int(i - i_offset + 2)]
+        i_offset += -1
+        tau += 1
+    else:
+        # Or just normally add one sample to the buffer
+        buf[:-1] = buf[1:]
+        buf[-1] = matched_filtered_samples[int(i - i_offset)]
 
     # interpolate matched filter output
     hi   = np.sinc(th - tau) * w  # interpolating filter coefficients
@@ -155,7 +204,6 @@ for i in range(1, len(matched_filtered_samples)):
     buf_dz[:-1] = buf_dz[1:]
     buf_dz[-1] = time_recovery_samples[i]
     dz = -np.dot(buf_dz, np.array([-1, 0, 1]))
-
 
     # determine if an output sample needs to be computed
     counter = counter + 1
@@ -176,7 +224,8 @@ for i in range(1, len(matched_filtered_samples)):
 
     # save results for plotting
     dtau_vect[i] = dtau
-    tau_vect[i] = tau
+    tau_vect[i] = tau + i_offset
+    i += 1
 
 # Plot timing offset
 plt.figure()
@@ -367,14 +416,38 @@ with open(packet_file, 'w') as f:
         f.write(packet + '\n')
 
 # Print out the parsed packets
+error_packets = 0
+fixed_packets = 0
 print("\nList of packets: (### indicates checksum failed)")
 for packet in packets:
     output = ''
 
     # Compute the fletcher16 checksum over the whole packet
     # 0000 output is a good packet
+    if fletcher_checksum(packet) != '0000' and brute_force_1bit_error_correction:
+        # Attempt to correct errors by flipping bits until the checksum comes out correct
+        binary_packet = format(int(packet, 16), '0>{}b'.format(len(packet)/2*8))
+        for xx in range(0, len(binary_packet)):
+            temp_packet = ''
+            if binary_packet[xx] == '0':
+                temp_bits = binary_packet[:xx] + '1' + binary_packet[xx+1:]
+            else:
+                temp_bits = binary_packet[:xx] + '0' + binary_packet[xx+1:]
+
+            for yy in range(0, len(binary_packet), 8):
+                if reverse:
+                    temp_packet += '{:02X}'.format(int(temp_bits[yy:yy+8][::-1], 2))
+                else:
+                    temp_packet += '{:02X}'.format(int(temp_bits[yy:yy+8], 2))
+            if fletcher_checksum(temp_packet) == '0000':
+                # print("Found correct packet!")
+                packet = temp_packet
+                fixed_packets += 1
+                break
+
     if fletcher_checksum(packet) != '0000':
         output += '### '
+        error_packets += 1
     for packet_type in packet_dict:
         packet_info = packet_dict[packet_type]
         if packet[:2] == packet_info['hex_header']:
@@ -419,6 +492,10 @@ for packet in packets:
     # would also happen if the header is corrupted
     if output in ['', '### ']:
         print("{}Unrecognized packet: {}".format(output, packet))
+
+print("{} packets with errors, {} packets corrected, PER: {:5.1f}%".format(error_packets+fixed_packets,
+                                                                           fixed_packets,
+                                                                           float(error_packets)/len(packets)*100))
 
 # Plot IQ samples
 plt.figure()

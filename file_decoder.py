@@ -474,10 +474,12 @@ for packet in packets:
                 ypos = payload[30:35][::-1]
                 xpos = payload[35:40][::-1]
 
+                # Constants/equations from Orbcomm Serial Interface Specification E80050015-Rev F
                 max_r_sat = 8378155.0
                 max_v_sat = 7700.0
                 val_20_bits = 1048576.0
 
+                # ECEF position.
                 x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
                 x_ecef = ((2*x_temp*max_r_sat)/val_20_bits - max_r_sat)
                 y_temp = int(ypos[:2][::-1], 16) + 256. * int(ypos[2:4][::-1], 16) + 256**2 * int(ypos[4:], 16)
@@ -485,6 +487,7 @@ for packet in packets:
                 z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
                 z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
+                # ECEF velocity vectors
                 vx_temp = int(xdot[:2][::-1], 16) + 256. * int(xdot[2:4][::-1], 16) + 256**2 * int(xdot[4:], 16)
                 vx_ecef = ((2*vx_temp*max_v_sat)/val_20_bits - max_v_sat)
                 vy_temp = int(ydot[:2][::-1], 16) + 256. * int(ydot[2:4][::-1], 16) + 256**2 * int(ydot[4:], 16)
@@ -492,7 +495,10 @@ for packet in packets:
                 vz_temp = int(zdot[:2][::-1], 16) + 256. * int(zdot[2:4][::-1], 16) + 256**2 * int(zdot[4:], 16)
                 vz_ecef = ((2*vz_temp*max_v_sat)/val_20_bits - max_v_sat)
 
+                # Calculate satellites reported velocity
                 sat_vel = np.sqrt(vx_ecef**2 + vy_ecef**2 + vz_ecef**2)
+                # Calculate the satellites reported position
+                lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
 
                 # Calculate the distance between satellite's reported position and the ephemeris position
                 ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
@@ -501,18 +507,20 @@ for packet in packets:
 
                 # Calculate velocity from pyephem by calculating the position half a second before and after timestamp
                 # to get "distance traveled per second"
+                # 0.5 seconds in the past
                 obs.date = datetime.utcfromtimestamp(timestamp - 0.5)
                 sat.compute(obs)
                 ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
                 ephem_x_ecef_1, ephem_y_ecef_1, ephem_z_ecef_1 = lla_to_ecef(ephem_lat, ephem_lon, ephem_alt)
 
+                # 0.5 seconds in the future
                 obs.date = datetime.utcfromtimestamp(timestamp + 0.5)
                 sat.compute(obs)
                 ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
                 ephem_x_ecef_2, ephem_y_ecef_2, ephem_z_ecef_2 = lla_to_ecef(ephem_lat, ephem_lon, ephem_alt)
+                # Calculate distance between those points (since it is over 1 second, it is the same as velocity)
                 ephem_vel = np.sqrt((ephem_x_ecef_1 - ephem_x_ecef_2)**2 + (ephem_y_ecef_1 - ephem_y_ecef_2)**2 + (ephem_z_ecef_1 - ephem_z_ecef_2)**2)
 
-                lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
                 print("\tSat Lat/Lon:   {:8.4f}, {:8.4f}, Altitude: {:6.1f} km, Velocity: {:6.1f} m/s".format(lat, lon, alt/1000.0, sat_vel))
                 print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km, Velocity: {:6.1f} m/s".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0, ephem_vel))
                 print("\tDifference in reported and ephemeris position: {:6.1f} km".format(distance/1000.0))

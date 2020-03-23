@@ -55,49 +55,53 @@ pip install pyrtlsdr numpy scipy pyephem matplotlib
 ```
 EXAMPLE OUTPUT
 Filename: ./data/1552071892p6.mat
-Timestamp: 1552071892.600117
+Timestamp: 1552071892.6
 Data collected on: 2019-03-08 19:04:52.600117
 Satellites in recording: orbcomm fm114
 SDR Sample rate: 1228800.0 Hz
 SDR Center frequency: 137500000.0 Hz
 Satellite frequencies: 137287500.0, 137737500.0
+Number of samples: 2458624
 Remaining frequency offset after doppler compensation: -141.0 Hz
-Number of possible packets: 100.03125
+Number of possible packets: 100
 Bit stream offset: 3
 
 List of packets: (### indicates checksum failed)
-### Unrecognized packet: 9F193958A56A1A7A9BE0ED2B
-Fill: data: 19F1D8528E1EF9701DED
-Fill: data: 5A8C1A5E354CE775C6A3
-Fill: data: 6FE4A5F1DDC8B12CADE5
-Fill: data: 567DC3683187453D728D
-Fill: data: 463E5D5FB36A15E68001
-Message: msg_packet_num: 0 msg_total_length: 2 data: 001F05CE01C0721828
-Message: msg_packet_num: 1 msg_total_length: 2 data: 507102000000000032
-Message: msg_packet_num: 0 msg_total_length: 2 data: 1167036942905C869C
-Message: msg_packet_num: 1 msg_total_length: 2 data: C10183D10BE0A32C54
-Message: msg_packet_num: 0 msg_total_length: 3 data: A241000129687B035E
-Message: msg_packet_num: 1 msg_total_length: 3 data: 921E026637E0228277
-Message: msg_packet_num: 2 msg_total_length: 3 data: A236830000000000F7
-Message: msg_packet_num: 0 msg_total_length: 2 data: 836B01E54270B20226
-Message: msg_packet_num: 1 msg_total_length: 2 data: 734502B42B00000048
-Fill: data: B3489015957F14F39CC3
-Fill: data: D9B2B6A2EB952C9A23AD
+### Unrecognized packet: AF0C3958A56A1A7A9BE0ED2B
+Fill: data: 19F1D8528E1EF9701DED 
+Fill: data: 5A8C1A5E354CE775C6A3 
+Fill: data: 6FE4A5F1DDC8B12CADE5 
+Fill: data: 567DC3683187453D728D 
+Fill: data: 463E5D5FB36A15E68001 
+Message: msg_packet_num: 0 msg_total_length: 2 data: 001F05CE01C0721828 
+Message: msg_packet_num: 1 msg_total_length: 2 data: 507102000000000032 
+Message: msg_packet_num: 0 msg_total_length: 2 data: 1167036942905C869C 
+Message: msg_packet_num: 1 msg_total_length: 2 data: C10183D10BE0A32C54 
+Message: msg_packet_num: 0 msg_total_length: 3 data: A241000129687B035E 
+Message: msg_packet_num: 1 msg_total_length: 3 data: 921E026637E0228277 
+Message: msg_packet_num: 2 msg_total_length: 3 data: A236830000000000F7 
+Message: msg_packet_num: 0 msg_total_length: 2 data: 836B01E54270B20226 
+Message: msg_packet_num: 1 msg_total_length: 2 data: 734502B42B00000048 
+Fill: data: B3489015957F14F39CC3 
+Fill: data: D9B2B6A2EB952C9A23AD 
 Unrecognized packet: 0B01FD24CCCCCC204501CF3A
-Sync: code: 65A8F9 sat_id: 2C
-Downlink_info: msg_packet_num: 0 msg_total_length: 3 data: 27310750A005640094
-Downlink_info: msg_packet_num: 1 msg_total_length: 3 data: 7D000BB89010130195
-Downlink_info: msg_packet_num: 2 msg_total_length: 3 data: 1D011400000000003F
-Network: msg_packet_num: 0 msg_total_length: 1 data: 7800010000000000E2
-Ephemeris: sat_id: 2C data: 98E3D5043B9BC34CDDF04C3CE66F98D5A307FB07E1D8
-	Current satellite time: 2019-03-08 19:04:53 Z
-	Lat/Lon:        44.9555, -116.0878, Altitude:  715.3 km
-	Ephem Lat/Lon:  44.7855, -116.0779, Altitude:  715.2 km
+Sync: code: 65A8F9 sat_id: 2C 
+Downlink_info: msg_packet_num: 0 msg_total_length: 3 data: 27310750A005640094 
+Downlink_info: msg_packet_num: 1 msg_total_length: 3 data: 7D000BB89010130195 
+Downlink_info: msg_packet_num: 2 msg_total_length: 3 data: 1D011400000000003F 
+Network: msg_packet_num: 0 msg_total_length: 1 data: 7800010000000000E2 
+Ephemeris: sat_id: 2C data: 98E3D5043B9BC34CDDF04C3CE66F98D5A307FB07E1D8 
+    Current satellite time: 2019-03-08 19:04:53 Z
+    Lat/Lon:        44.9555, -116.0878, Altitude:  715.3 km, Velocity: 7151.4 m/s
+    Ephem Lat/Lon:  44.7939, -116.0389, Altitude:  715.2 km, Velocity: 7170.9 m/s
+    Difference in reported and ephemeris position:   21.0 km
+    Difference in reported and ephemeris velocity:   19.5 m/s
 Unrecognized packet: 0B011C2AEDEEEE409B02A761
 Unrecognized packet: 0B01641D76989944450169D9
 Unrecognized packet: 0A48B99524C221A30012BCE8
 Unrecognized packet: 0A4C3F01207164CF01127E15
 Unrecognized packet: 0A506D28227274970012FF61
+Unrecognized packet: 0A54E4BB7A6A5499021662B8
 ```
 
 

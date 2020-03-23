@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from sat_db import active_orbcomm_satellites
 from orbcomm_packet import packet_dict
 from helpers import butter_lowpass_filter, complex_mix, rrcosfilter
-from helpers import fletcher_checksum, ecef_to_lla
+from helpers import fletcher_checksum, ecef_to_lla, lla_to_ecef
 
 
 # speed of light
@@ -475,6 +475,7 @@ for packet in packets:
                 xpos = payload[35:40][::-1]
 
                 max_r_sat = 8378155.0
+                max_v_sat = 7700.0
                 val_20_bits = 1048576.0
 
                 x_temp = int(xpos[:2][::-1], 16) + 256. * int(xpos[2:4][::-1], 16) + 256**2 * int(xpos[4:], 16)
@@ -484,9 +485,38 @@ for packet in packets:
                 z_temp = int(zpos[:2][::-1], 16) + 256. * int(zpos[2:4][::-1], 16) + 256**2 * int(zpos[4:], 16)
                 z_ecef = ((2*z_temp*max_r_sat)/val_20_bits - max_r_sat)
 
+                vx_temp = int(xdot[:2][::-1], 16) + 256. * int(xdot[2:4][::-1], 16) + 256**2 * int(xdot[4:], 16)
+                vx_ecef = ((2*vx_temp*max_v_sat)/val_20_bits - max_v_sat)
+                vy_temp = int(ydot[:2][::-1], 16) + 256. * int(ydot[2:4][::-1], 16) + 256**2 * int(ydot[4:], 16)
+                vy_ecef = ((2*vy_temp*max_v_sat)/val_20_bits - max_v_sat)
+                vz_temp = int(zdot[:2][::-1], 16) + 256. * int(zdot[2:4][::-1], 16) + 256**2 * int(zdot[4:], 16)
+                vz_ecef = ((2*vz_temp*max_v_sat)/val_20_bits - max_v_sat)
+
+                sat_vel = np.sqrt(vx_ecef**2 + vy_ecef**2 + vz_ecef**2)
+
+                # Calculate the distance between satellite's reported position and the ephemeris position
+                ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
+                ephem_x_ecef, ephem_y_ecef, ephem_z_ecef = lla_to_ecef(ephem_lat, ephem_lon, ephem_alt)
+                distance = np.sqrt((x_ecef - ephem_x_ecef)**2 + (y_ecef - ephem_y_ecef)**2 + (z_ecef - ephem_z_ecef)**2)
+
+                # Calculate velocity from pyephem by calculating the position half a second before and after timestamp
+                # to get "distance traveled per second"
+                obs.date = datetime.utcfromtimestamp(timestamp - 0.5)
+                sat.compute(obs)
+                ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
+                ephem_x_ecef_1, ephem_y_ecef_1, ephem_z_ecef_1 = lla_to_ecef(ephem_lat, ephem_lon, ephem_alt)
+
+                obs.date = datetime.utcfromtimestamp(timestamp + 0.5)
+                sat.compute(obs)
+                ephem_lat, ephem_lon, ephem_alt = (np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation)
+                ephem_x_ecef_2, ephem_y_ecef_2, ephem_z_ecef_2 = lla_to_ecef(ephem_lat, ephem_lon, ephem_alt)
+                ephem_vel = np.sqrt((ephem_x_ecef_1 - ephem_x_ecef_2)**2 + (ephem_y_ecef_1 - ephem_y_ecef_2)**2 + (ephem_z_ecef_1 - ephem_z_ecef_2)**2)
+
                 lat, lon, alt = ecef_to_lla(x_ecef, y_ecef, z_ecef)
-                print("\tLat/Lon:       {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(lat, lon, alt/1000.0))
-                print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0))
+                print("\tSat Lat/Lon:   {:8.4f}, {:8.4f}, Altitude: {:6.1f} km, Velocity: {:6.1f} m/s".format(lat, lon, alt/1000.0, sat_vel))
+                print("\tEphem Lat/Lon: {:8.4f}, {:8.4f}, Altitude: {:6.1f} km, Velocity: {:6.1f} m/s".format(np.degrees(sat.sublat), np.degrees(sat.sublong), sat.elevation/1000.0, ephem_vel))
+                print("\tDifference in reported and ephemeris position: {:6.1f} km".format(distance/1000.0))
+                print("\tDifference in reported and ephemeris velocity: {:6.1f} m/s".format(abs(sat_vel - ephem_vel)))
             break
     # Unrecognized just means I don't know what these packets are for
     # would also happen if the header is corrupted

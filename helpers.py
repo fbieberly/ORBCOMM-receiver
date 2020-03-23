@@ -168,3 +168,21 @@ def ecef_to_lla(x_ecef, y_ecef, z_ecef):
     h = (wgs84_p / np.cos(phi)) - wgs84_v
 
     return np.degrees(phi), np.degrees(lamd), h
+
+
+def lla_to_ecef(lat, lon, alt):
+    # From: https://gis.stackexchange.com/questions/230160/converting-wgs84-to-ecef-in-python
+    rad_lat = lat * (np.pi / 180.0)
+    rad_lon = lon * (np.pi / 180.0)
+
+    a = 6378137.0
+    finv = 298.257223563
+    f = 1 / finv
+    e2 = 1 - (1 - f) * (1 - f)
+    v = a / np.sqrt(1 - e2 * np.sin(rad_lat) * np.sin(rad_lat))
+
+    x = (v + alt) * np.cos(rad_lat) * np.cos(rad_lon)
+    y = (v + alt) * np.cos(rad_lat) * np.sin(rad_lon)
+    z = (v * (1 - e2) + alt) * np.sin(rad_lat)
+
+    return x, y, z

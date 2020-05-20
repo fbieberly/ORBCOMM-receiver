@@ -141,7 +141,6 @@ def rtlsdr_callback(samples, context):
 # It collects samples from a queue, processes them and plots the results
 def process_samples(queue):
     global decoder
-    global should_finish
     global sat_gps_dict
     global sat_plot_lines
 
@@ -281,7 +280,6 @@ def process_samples(queue):
                 # Then we'll close this process and exit the program
                 fignums = plt.get_fignums()
                 if len(fignums) == 0:
-                    should_finish = True
                     break
 
         # Catch ctrl+c and exit program

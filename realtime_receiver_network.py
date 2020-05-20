@@ -389,9 +389,9 @@ while 1:
             # If no satellite is overhead, find the next one that will be
             sat_detected = False
 
-            lon += 10.0
-            obs.lon = '{}'.format(lon)
-            continue
+            # lon += 10.0
+            # obs.lon = '{}'.format(lon)
+            # continue
 
             for minute in range(0, 60*12):
 

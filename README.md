@@ -116,6 +116,19 @@ Unrecognized packet: 0A54E4BB7A6A5499021662B8
     1. Note that not all the ORBCOMM satellites still transmit. Look in _sat_db.py_ to see the active ones.
 
 
+#### Real-time recording and decoding from remote RTL-SDR
+1. First run the _update_orbcomm_tle.py_ script to get the latest two-line elements for the ORBCOMM satellites.
+1. Update latitude and longitude of your receiver in _CONFIG.py_
+    1. Should be in the format: ```lat, lon = 40.919295, -74.087683```
+1. Update ip_address and port_number of your 'processing computer' in CONFIG.py
+    1. Should be on the same network as your remote computer.
+1. Run _realtime_receiver_network.py_
+    1. If there is no satellite overhead it will tell you how long the wait is.
+    1. The program will block waiting for data to come in to the port.
+1. Execute the following command on your remote computer (with the RTL-SDR): ```rtl_sdr -f 137500000 -s 1228800 -g 0 - | netcat -uv ip_address port_number```
+    1. ip_address and port_number should be the same as what you put in the CONFIG.py file.
+
+
 [gPredict]: http://gpredict.oz9aec.net/
 
 
@@ -139,6 +152,7 @@ Scripts include:
 - _file_decoder.py_: If you have .mat files in the data folder, this script will attempt to decode one
 - _realtime_decoder.py_: This is a class for doing decoding of a realtime stream of samples
 - _realtime_receiver.py_: This is a script that does realtime decoding of the ORBCOMM signal, plus some interesting plots
+- _realtime_receiver_network.py_: This is a script that does realtime decoding of the ORBCOMM signal, it receives samples from an RTL-SDR dongle that is on a remote computer.
 
 
 

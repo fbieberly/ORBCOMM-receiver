@@ -113,7 +113,7 @@ def socket_get_samples(queue, context):
         try:
             data, addr = sock.recvfrom(65565)
             # There are some very small packets that don't have samples in them
-            print('Size of data in packet: {}, Number of sample queues used: {}'.format(len(data), queue.qsize()))
+            # print('Size of data in packet: {}, Number of sample queues used: {}'.format(len(data), queue.qsize()))
             if len(data) < 100:
                 continue
 

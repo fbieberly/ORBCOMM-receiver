@@ -111,22 +111,21 @@ def socket_get_samples(queue, context):
 
     while 1:
         try:
-            data, addr = sock.recvfrom(65565)
-            # There are some very small packets that don't have samples in them
-            # print('Size of data in packet: {}, Number of sample queues used: {}'.format(len(data), queue.qsize()))
-            if len(data) < 100:
-                continue
-
-
             # rtl_sdr over netcat sends small batches of samples at a time which
             # fills up the buffers to quickly. Concatenating many batches into
-            # one buffer allows faster processing.
+            # one bigger buffer allows faster processing.
             samples = np.array([], dtype=np.complex64)
-            for xx in range(5):
+            for xx in range(20):
                 data, addr = sock.recvfrom(65565)
+                # There are some very small packets that don't have samples in them
+                if len(data) < 100:
+                    continue
+
                 # The samples are a string of binary data, uint8's, interleaved IQ
                 # This code converts them to numpy complex64 samples
-                temp_samples = np.fromstring(data, dtype=np.uint8).astype(np.float32).view(np.complex64) - 127.0
+                temp_samples = np.fromstring(data, dtype=np.uint8)
+                temp_samples = temp_samples.astype(np.float64)/127.5
+                temp_samples = temp_samples.view(np.complex128) - (1 + 1j)
                 samples = np.concatenate((samples, temp_samples))
 
             # Calculate the doppler shift for the satellite

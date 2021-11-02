@@ -426,7 +426,7 @@ for packet in packets:
     # 0000 output is a good packet
     if fletcher_checksum(packet) != '0000' and brute_force_1bit_error_correction:
         # Attempt to correct errors by flipping bits until the checksum comes out correct
-        binary_packet = format(int(packet, 16), '0>{}b'.format(len(packet)/2*8))
+        binary_packet = format(int(packet, 16), '0>{}b'.format(int(len(packet)/2*8)))
         for xx in range(0, len(binary_packet)):
             temp_packet = ''
             if binary_packet[xx] == '0':

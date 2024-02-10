@@ -40,7 +40,16 @@ data_dir = r'./data/'
 sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 
 # Load the .mat file and print some of the metadata
-data = loadmat(sample_file)
+try:
+    data = loadmat(sample_file)
+except ValueError as e:
+    print(e)
+    print("It appears that the .mat files aren't properly formatted.")
+    print("The files that come with this repo are stored with git Large File Storage.")
+    print("You should install git-lfs and then checkout the files (git checkout data/*).")
+    print("If you are just downloading the repo, download the raw files from the data folder.")
+    exit()
+
 print("Filename: {}".format(sample_file))
 print("Timestamp: {}".format(data['timestamp'][0][0]))
 print("Data collected on: {}".format(datetime.utcfromtimestamp(data['timestamp'][0][0])))

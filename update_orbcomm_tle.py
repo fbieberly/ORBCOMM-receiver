@@ -3,7 +3,7 @@ try:
 except:
 	from urllib.request import urlopen
 
-response = urlopen('https://www.celestrak.com/NORAD/elements/orbcomm.txt')
+response = urlopen('https://celestrak.org/NORAD/elements/gp.php?GROUP=orbcomm&FORMAT=tle')
 html = response.read().decode('ascii')
 
 if '21576' in html: # check if NORAD ID of ORBCOMM-X is in text file

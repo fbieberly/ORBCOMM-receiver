@@ -6,7 +6,7 @@ except:
 response = urlopen('https://celestrak.org/NORAD/elements/gp.php?GROUP=orbcomm&FORMAT=tle')
 html = response.read().decode('ascii')
 
-if '21576' in html: # check if NORAD ID of ORBCOMM-X is in text file
+if '41189' in html: # check if NORAD ID of ORBCOMM FM116 is in text file
 	with open('./tles/orbcomm.txt', 'w') as f:
 		f.write(html)
 	print("Updated Orbcomm TLE file.")

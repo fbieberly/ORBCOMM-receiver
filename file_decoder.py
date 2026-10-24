@@ -12,6 +12,7 @@
 ##############################################################################
 
 import glob
+import sys
 from datetime import datetime, timedelta
 
 import ephem
@@ -38,7 +39,13 @@ packet_file = r'./packets.txt'
 
 # Where the data files are located
 data_dir = r'./data/'
-sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
+
+# Usage: python file_decoder.py [path/to/recording.mat]
+# With no argument, decodes the second file in data_dir (the original default).
+if len(sys.argv) > 1:
+    sample_file = sys.argv[1]
+else:
+    sample_file = sorted(glob.glob(data_dir + "*.mat"))[0]
 
 # Load the .mat file and print some of the metadata
 try:

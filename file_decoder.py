@@ -28,6 +28,7 @@ from helpers import fletcher_checksum, ecef_to_lla, lla_to_ecef
 
 # speed of light
 c = 299792458.0 # m/s
+should_display_plots = False
 
 # Perform brute force error correction
 brute_force_1bit_error_correction = True
@@ -419,6 +420,8 @@ for xx in range(bit_offset, len(bit_string)-size_of_packets, size_of_packets):
             packet += '{:02X}'.format(int(bit_string[xx+yy:xx+yy+8][::-1], 2))
     packets.append(packet)
 
+print("Number of packets decoded: {:}".format(len(packets)))
+
 # Save the packets (in hex) to a file
 with open(packet_file, 'w') as f:
     for packet in packets:
@@ -635,4 +638,6 @@ plt.ylabel("Imag")
 plt.grid()
 ax.set_aspect(aspect=1)
 plt.tight_layout()
-plt.show()
+
+if should_display_plots:
+    plt.show()

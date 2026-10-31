@@ -73,7 +73,7 @@ packet_dict = {
                                             ],
 
                             },
-                    'Oribital':{
+                    'Orbital':{
                             'header':'00100010',
                             'hex_header':'22',
                             'message_parts':[

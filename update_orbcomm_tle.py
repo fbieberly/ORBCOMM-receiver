@@ -1,7 +1,4 @@
-try:
-	from urllib2 import urlopen 
-except:
-	from urllib.request import urlopen
+from urllib.request import urlopen
 
 response = urlopen('https://celestrak.org/NORAD/elements/gp.php?GROUP=orbcomm&FORMAT=tle')
 html = response.read().decode('ascii')

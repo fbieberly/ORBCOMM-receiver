@@ -33,11 +33,6 @@ if realtime_plotting:
         print("Qt plotting backend for matplotlib required. Exiting.")
         exit()
 
-try:
-    # For python2.7
-    import cPickle as pickle
-except:
-    pass
 import signal
 from time import time, sleep
 import multiprocessing as mp

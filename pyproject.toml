@@ -1,0 +1,32 @@
+# Project metadata and tool config.
+#
+# This repo is NOT meant to be pip-installed. Students run the scripts
+# directly after `pip install -r requirements.txt`.
+# requirements.txt is the single source of truth for dependencies.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orbcomm-receiver"
+version = "0.2.0.dev0"
+description = "Software receiver for ORBCOMM satellite transmissions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Frank Bieberly" }]
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools]
+packages = []  # no auto-discovery; repo is run in place, not installed
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]  # lets tests import repo modules without installing

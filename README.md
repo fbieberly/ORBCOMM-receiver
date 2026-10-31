@@ -21,7 +21,7 @@ http://f6cte.free.fr/index_anglais.htm
 
 ## Dependencies
 
-Should work with either Python 2.X or 3.X
+Requires Python 3.10 or newer.
 
 I use:  
 [pyrtlsdr] to record the RF signal with an RTLSDR receiver.  
@@ -29,8 +29,39 @@ I use:
 [PyEphem] is used to calculate Az/El and doppler shift of the satellites.  
 [Matplotlib] is used for plotting data.
 
-pip install pyrtlsdr numpy scipy pyephem matplotlib
+#### Installing
 
+From the folder containing this README, install the dependencies (they are
+listed in _requirements.txt_):
+
+```
+python -m pip install -r requirements.txt
+```
+
+(On some systems the command is `python3` or `py` instead of `python`.)
+
+**If you get an "externally-managed-environment" error**, or you want to keep
+these packages separate from your other Python projects, use a virtual
+environment instead:
+
+```
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+```
+
+You need to run the `activate` line again each time you open a new terminal.
+
+**Using an IDE or Anaconda** (Thonny, VS Code, PyCharm, Spyder, ...)? Install
+the packages listed in _requirements.txt_ with its package manager instead.
+
+To run the tests as well, use `python -m pip install -r requirements-dev.txt`
+and then `python -m pytest`. (The decoder tests need the recordings in the
+_data_ folder; they are skipped if the files are missing.)
+
+Recording and real-time use with an RTL-SDR also needs the _librtlsdr_ system
+library (on Ubuntu: `sudo apt install librtlsdr0`). Decoding saved recordings
+does not need it.
 
 
 [PyEphem]: https://rhodesmill.org/pyephem/index.html
@@ -49,7 +80,7 @@ pip install pyrtlsdr numpy scipy pyephem matplotlib
     1. Alternatively, use the _record_orbcomm_long.py_ script which will produce a longer recording that has been decimated to save storage space.
     1. The longest recording that _record_orbcomm.py_ can make is about 3 seconds, _record_orbcomm_long.py_ can make recordings that are ~100 seconds long.
 4. Run _file_decoder.py_ to decode a single recording file (defaults to the first file in the /data folder)
-    1. The file it decodes is selected near the top of the file (Line 37). Change it there if you wish to decode other files.
+    1. To decode a specific recording, give its path: ```python file_decoder.py data/1552071892p6.mat```. With no argument it decodes the first file in the /data folder.
     1. Note: There are 2 data files that come with this repo. If you want to process your own recordings, you'll need to remove those files (or just point the file_decoder.py script to your files).
 
 ```
